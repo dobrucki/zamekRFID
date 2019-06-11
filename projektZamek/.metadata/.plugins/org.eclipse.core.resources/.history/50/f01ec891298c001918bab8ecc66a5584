@@ -1,0 +1,527 @@
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 1
+
+
+   1              		.code	16
+   2              		.file	"pwm.c"
+   3              		.section	.debug_abbrev,"",%progbits
+   4              	.Ldebug_abbrev0:
+   5              		.section	.debug_info,"",%progbits
+   6              	.Ldebug_info0:
+   7              		.section	.debug_line,"",%progbits
+   8              	.Ldebug_line0:
+   9 0000 59000000 		.text
+   9      02003300 
+   9      00000201 
+   9      FB0E0D00 
+   9      01010101 
+  10              	.Ltext0:
+  11              		.align	2
+  12              		.global	initPWM
+  13              		.code 16
+  14              		.thumb_func
+  15              		.type	initPWM, %function
+  16              	initPWM:
+  17              	.LFB2:
+  18              		.file 1 "pwm.c"
+   1:pwm.c         **** #include "pwm.h"
+   2:pwm.c         **** 
+   3:pwm.c         **** void initPWM(tU8 frequency)
+   4:pwm.c         **** {
+  19              		.loc 1 4 0
+  20              	.LVL0:
+   5:pwm.c         **** 	PINSEL0 |= 0x00080000;
+  21              		.loc 1 5 0
+  22 0000 0E49     		ldr	r1, .L3
+  23 0002 8023     		mov	r3, #128
+  24 0004 0A68     		ldr	r2, [r1]
+  25 0006 1B03     		lsl	r3, r3, #12
+  26 0008 1A43     		orr	r2, r2, r3
+   6:pwm.c         **** 
+   7:pwm.c         **** 	PWM_PR = 0x00+60;
+  27              		.loc 1 7 0
+  28 000a 0D4B     		ldr	r3, .L3+4
+  29              		.loc 1 5 0
+  30 000c 0A60     		str	r2, [r1]
+  31              		.loc 1 7 0
+  32 000e 3C22     		mov	r2, #60
+  33 0010 1A60     		str	r2, [r3]
+  34              		.loc 1 4 0
+  35 0012 0006     		lsl	r0, r0, #24
+  36              	.LVL1:
+   8:pwm.c         **** 	PWM_MCR = 0x02;
+  37              		.loc 1 8 0
+  38 0014 0222     		mov	r2, #2
+  39 0016 0833     		add	r3, r3, #8
+  40 0018 1A60     		str	r2, [r3]
+  41              		.loc 1 4 0
+  42 001a 000E     		lsr	r0, r0, #24
+  43              	.LVL2:
+   9:pwm.c         **** 	PWM_MR0 = frequency;
+  44              		.loc 1 9 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 2
+
+
+  45 001c 0433     		add	r3, r3, #4
+  46 001e 1860     		str	r0, [r3]
+  10:pwm.c         **** 	PWM_MR6 = PWM_MR0 / 2;
+  47              		.loc 1 10 0
+  48 0020 1B68     		ldr	r3, [r3]
+  49 0022 084A     		ldr	r2, .L3+8
+  50 0024 5B08     		lsr	r3, r3, #1
+  51 0026 1360     		str	r3, [r2]
+  11:pwm.c         **** 	PWM_LER = 0x41;
+  52              		.loc 1 11 0
+  53 0028 074B     		ldr	r3, .L3+12
+  54 002a 4122     		mov	r2, #65
+  55 002c 1A60     		str	r2, [r3]
+  12:pwm.c         **** 	PWM_PCR = 0x4001;
+  56              		.loc 1 12 0
+  57 002e 074A     		ldr	r2, .L3+16
+  58 0030 043B     		sub	r3, r3, #4
+  59 0032 1A60     		str	r2, [r3]
+  13:pwm.c         **** 	PWM_TCR = 0x00;
+  60              		.loc 1 13 0
+  61 0034 0022     		mov	r2, #0
+  62 0036 483B     		sub	r3, r3, #72
+  63              		.loc 1 4 0
+  64              		@ lr needed for prologue
+  65              		.loc 1 13 0
+  66 0038 1A60     		str	r2, [r3]
+  14:pwm.c         **** }
+  67              		.loc 1 14 0
+  68              		@ sp needed for prologue
+  69 003a 7047     		bx	lr
+  70              	.L4:
+  71              		.align	2
+  72              	.L3:
+  73 003c 00C002E0 		.word	-536690688
+  74 0040 0C4001E0 		.word	-536788980
+  75 0044 484001E0 		.word	-536788920
+  76 0048 504001E0 		.word	-536788912
+  77 004c 01400000 		.word	16385
+  78              	.LFE2:
+  79              		.size	initPWM, .-initPWM
+  80              		.align	2
+  81              		.global	pwmON
+  82              		.code 16
+  83              		.thumb_func
+  84              		.type	pwmON, %function
+  85              	pwmON:
+  86              	.LFB3:
+  15:pwm.c         **** 
+  16:pwm.c         **** void pwmON() {
+  87              		.loc 1 16 0
+  17:pwm.c         ****     PWM_TCR = 0x09;
+  88              		.loc 1 17 0
+  89 0050 014B     		ldr	r3, .L7
+  90 0052 0922     		mov	r2, #9
+  91              		.loc 1 16 0
+  92              		@ lr needed for prologue
+  93              		.loc 1 17 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 3
+
+
+  94 0054 1A60     		str	r2, [r3]
+  18:pwm.c         **** }
+  95              		.loc 1 18 0
+  96              		@ sp needed for prologue
+  97 0056 7047     		bx	lr
+  98              	.L8:
+  99              		.align	2
+ 100              	.L7:
+ 101 0058 044001E0 		.word	-536788988
+ 102              	.LFE3:
+ 103              		.size	pwmON, .-pwmON
+ 104              		.align	2
+ 105              		.global	pwmOFF
+ 106              		.code 16
+ 107              		.thumb_func
+ 108              		.type	pwmOFF, %function
+ 109              	pwmOFF:
+ 110              	.LFB4:
+  19:pwm.c         **** 
+  20:pwm.c         **** void pwmOFF(){
+ 111              		.loc 1 20 0
+  21:pwm.c         ****     PWM_TCR = 0x02;
+ 112              		.loc 1 21 0
+ 113 005c 014B     		ldr	r3, .L11
+ 114 005e 0222     		mov	r2, #2
+ 115              		.loc 1 20 0
+ 116              		@ lr needed for prologue
+ 117              		.loc 1 21 0
+ 118 0060 1A60     		str	r2, [r3]
+  22:pwm.c         **** }
+ 119              		.loc 1 22 0
+ 120              		@ sp needed for prologue
+ 121 0062 7047     		bx	lr
+ 122              	.L12:
+ 123              		.align	2
+ 124              	.L11:
+ 125 0064 044001E0 		.word	-536788988
+ 126              	.LFE4:
+ 127              		.size	pwmOFF, .-pwmOFF
+ 128              		.section	.debug_frame,"",%progbits
+ 129              	.Lframe0:
+ 130 0000 0C000000 		.4byte	.LECIE0-.LSCIE0
+ 131              	.LSCIE0:
+ 132 0004 FFFFFFFF 		.4byte	0xffffffff
+ 133 0008 01       		.byte	0x1
+ 134 0009 00       		.ascii	"\000"
+ 135 000a 01       		.uleb128 0x1
+ 136 000b 7C       		.sleb128 -4
+ 137 000c 0E       		.byte	0xe
+ 138 000d 0C       		.byte	0xc
+ 139 000e 0D       		.uleb128 0xd
+ 140 000f 00       		.uleb128 0x0
+ 141              		.align	2
+ 142              	.LECIE0:
+ 143              	.LSFDE0:
+ 144 0010 0C000000 		.4byte	.LEFDE0-.LASFDE0
+ 145              	.LASFDE0:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 4
+
+
+ 146 0014 00000000 		.4byte	.Lframe0
+ 147 0018 00000000 		.4byte	.LFB2
+ 148 001c 50000000 		.4byte	.LFE2-.LFB2
+ 149              		.align	2
+ 150              	.LEFDE0:
+ 151              	.LSFDE2:
+ 152 0020 0C000000 		.4byte	.LEFDE2-.LASFDE2
+ 153              	.LASFDE2:
+ 154 0024 00000000 		.4byte	.Lframe0
+ 155 0028 50000000 		.4byte	.LFB3
+ 156 002c 0C000000 		.4byte	.LFE3-.LFB3
+ 157              		.align	2
+ 158              	.LEFDE2:
+ 159              	.LSFDE4:
+ 160 0030 0C000000 		.4byte	.LEFDE4-.LASFDE4
+ 161              	.LASFDE4:
+ 162 0034 00000000 		.4byte	.Lframe0
+ 163 0038 5C000000 		.4byte	.LFB4
+ 164 003c 0C000000 		.4byte	.LFE4-.LFB4
+ 165              		.align	2
+ 166              	.LEFDE4:
+ 167              		.file 2 "./startup/general.h"
+ 168              		.text
+ 169              	.Letext0:
+ 170              		.section	.debug_loc,"",%progbits
+ 171              	.Ldebug_loc0:
+ 172              	.LLST1:
+ 173 0000 00000000 		.4byte	.LVL0-.Ltext0
+ 174 0004 14000000 		.4byte	.LVL1-.Ltext0
+ 175 0008 0100     		.2byte	0x1
+ 176 000a 50       		.byte	0x50
+ 177 000b 1C000000 		.4byte	.LVL2-.Ltext0
+ 178 000f 50000000 		.4byte	.LFE2-.Ltext0
+ 179 0013 0100     		.2byte	0x1
+ 180 0015 50       		.byte	0x50
+ 181 0016 00000000 		.4byte	0x0
+ 182 001a 00000000 		.4byte	0x0
+ 183              		.section	.debug_info
+ 184 0000 A2000000 		.4byte	0xa2
+ 185 0004 0200     		.2byte	0x2
+ 186 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 187 000a 04       		.byte	0x4
+ 188 000b 01       		.uleb128 0x1
+ 189 000c 00000000 		.4byte	.Ldebug_line0
+ 190 0010 68000000 		.4byte	.Letext0
+ 191 0014 00000000 		.4byte	.Ltext0
+ 192 0018 55000000 		.4byte	.LASF7
+ 193 001c 01       		.byte	0x1
+ 194 001d 48000000 		.4byte	.LASF8
+ 195 0021 67000000 		.4byte	.LASF9
+ 196 0025 02       		.uleb128 0x2
+ 197 0026 74553800 		.ascii	"tU8\000"
+ 198 002a 02       		.byte	0x2
+ 199 002b 47       		.byte	0x47
+ 200 002c 30000000 		.4byte	0x30
+ 201 0030 03       		.uleb128 0x3
+ 202 0031 B3000000 		.4byte	.LASF0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 5
+
+
+ 203 0035 01       		.byte	0x1
+ 204 0036 08       		.byte	0x8
+ 205 0037 03       		.uleb128 0x3
+ 206 0038 21000000 		.4byte	.LASF1
+ 207 003c 02       		.byte	0x2
+ 208 003d 07       		.byte	0x7
+ 209 003e 03       		.uleb128 0x3
+ 210 003f 00000000 		.4byte	.LASF2
+ 211 0043 04       		.byte	0x4
+ 212 0044 07       		.byte	0x7
+ 213 0045 03       		.uleb128 0x3
+ 214 0046 15000000 		.4byte	.LASF3
+ 215 004a 01       		.byte	0x1
+ 216 004b 06       		.byte	0x6
+ 217 004c 03       		.uleb128 0x3
+ 218 004d 3E000000 		.4byte	.LASF4
+ 219 0051 02       		.byte	0x2
+ 220 0052 05       		.byte	0x5
+ 221 0053 04       		.uleb128 0x4
+ 222 0054 696E7400 		.ascii	"int\000"
+ 223 0058 04       		.byte	0x4
+ 224 0059 05       		.byte	0x5
+ 225 005a 05       		.uleb128 0x5
+ 226 005b 81000000 		.4byte	0x81
+ 227 005f 01       		.byte	0x1
+ 228 0060 0D000000 		.4byte	.LASF10
+ 229 0064 01       		.byte	0x1
+ 230 0065 04       		.byte	0x4
+ 231 0066 01       		.byte	0x1
+ 232 0067 00000000 		.4byte	.LFB2
+ 233 006b 50000000 		.4byte	.LFE2
+ 234 006f 01       		.byte	0x1
+ 235 0070 5D       		.byte	0x5d
+ 236 0071 06       		.uleb128 0x6
+ 237 0072 34000000 		.4byte	.LASF11
+ 238 0076 01       		.byte	0x1
+ 239 0077 03       		.byte	0x3
+ 240 0078 25000000 		.4byte	0x25
+ 241 007c 00000000 		.4byte	.LLST1
+ 242 0080 00       		.byte	0x0
+ 243 0081 07       		.uleb128 0x7
+ 244 0082 01       		.byte	0x1
+ 245 0083 61000000 		.4byte	.LASF5
+ 246 0087 01       		.byte	0x1
+ 247 0088 10       		.byte	0x10
+ 248 0089 50000000 		.4byte	.LFB3
+ 249 008d 5C000000 		.4byte	.LFE3
+ 250 0091 01       		.byte	0x1
+ 251 0092 5D       		.byte	0x5d
+ 252 0093 07       		.uleb128 0x7
+ 253 0094 01       		.byte	0x1
+ 254 0095 4E000000 		.4byte	.LASF6
+ 255 0099 01       		.byte	0x1
+ 256 009a 14       		.byte	0x14
+ 257 009b 5C000000 		.4byte	.LFB4
+ 258 009f 68000000 		.4byte	.LFE4
+ 259 00a3 01       		.byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 6
+
+
+ 260 00a4 5D       		.byte	0x5d
+ 261 00a5 00       		.byte	0x0
+ 262              		.section	.debug_abbrev
+ 263 0000 01       		.uleb128 0x1
+ 264 0001 11       		.uleb128 0x11
+ 265 0002 01       		.byte	0x1
+ 266 0003 10       		.uleb128 0x10
+ 267 0004 06       		.uleb128 0x6
+ 268 0005 12       		.uleb128 0x12
+ 269 0006 01       		.uleb128 0x1
+ 270 0007 11       		.uleb128 0x11
+ 271 0008 01       		.uleb128 0x1
+ 272 0009 25       		.uleb128 0x25
+ 273 000a 0E       		.uleb128 0xe
+ 274 000b 13       		.uleb128 0x13
+ 275 000c 0B       		.uleb128 0xb
+ 276 000d 03       		.uleb128 0x3
+ 277 000e 0E       		.uleb128 0xe
+ 278 000f 1B       		.uleb128 0x1b
+ 279 0010 0E       		.uleb128 0xe
+ 280 0011 00       		.byte	0x0
+ 281 0012 00       		.byte	0x0
+ 282 0013 02       		.uleb128 0x2
+ 283 0014 16       		.uleb128 0x16
+ 284 0015 00       		.byte	0x0
+ 285 0016 03       		.uleb128 0x3
+ 286 0017 08       		.uleb128 0x8
+ 287 0018 3A       		.uleb128 0x3a
+ 288 0019 0B       		.uleb128 0xb
+ 289 001a 3B       		.uleb128 0x3b
+ 290 001b 0B       		.uleb128 0xb
+ 291 001c 49       		.uleb128 0x49
+ 292 001d 13       		.uleb128 0x13
+ 293 001e 00       		.byte	0x0
+ 294 001f 00       		.byte	0x0
+ 295 0020 03       		.uleb128 0x3
+ 296 0021 24       		.uleb128 0x24
+ 297 0022 00       		.byte	0x0
+ 298 0023 03       		.uleb128 0x3
+ 299 0024 0E       		.uleb128 0xe
+ 300 0025 0B       		.uleb128 0xb
+ 301 0026 0B       		.uleb128 0xb
+ 302 0027 3E       		.uleb128 0x3e
+ 303 0028 0B       		.uleb128 0xb
+ 304 0029 00       		.byte	0x0
+ 305 002a 00       		.byte	0x0
+ 306 002b 04       		.uleb128 0x4
+ 307 002c 24       		.uleb128 0x24
+ 308 002d 00       		.byte	0x0
+ 309 002e 03       		.uleb128 0x3
+ 310 002f 08       		.uleb128 0x8
+ 311 0030 0B       		.uleb128 0xb
+ 312 0031 0B       		.uleb128 0xb
+ 313 0032 3E       		.uleb128 0x3e
+ 314 0033 0B       		.uleb128 0xb
+ 315 0034 00       		.byte	0x0
+ 316 0035 00       		.byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 7
+
+
+ 317 0036 05       		.uleb128 0x5
+ 318 0037 2E       		.uleb128 0x2e
+ 319 0038 01       		.byte	0x1
+ 320 0039 01       		.uleb128 0x1
+ 321 003a 13       		.uleb128 0x13
+ 322 003b 3F       		.uleb128 0x3f
+ 323 003c 0C       		.uleb128 0xc
+ 324 003d 03       		.uleb128 0x3
+ 325 003e 0E       		.uleb128 0xe
+ 326 003f 3A       		.uleb128 0x3a
+ 327 0040 0B       		.uleb128 0xb
+ 328 0041 3B       		.uleb128 0x3b
+ 329 0042 0B       		.uleb128 0xb
+ 330 0043 27       		.uleb128 0x27
+ 331 0044 0C       		.uleb128 0xc
+ 332 0045 11       		.uleb128 0x11
+ 333 0046 01       		.uleb128 0x1
+ 334 0047 12       		.uleb128 0x12
+ 335 0048 01       		.uleb128 0x1
+ 336 0049 40       		.uleb128 0x40
+ 337 004a 0A       		.uleb128 0xa
+ 338 004b 00       		.byte	0x0
+ 339 004c 00       		.byte	0x0
+ 340 004d 06       		.uleb128 0x6
+ 341 004e 05       		.uleb128 0x5
+ 342 004f 00       		.byte	0x0
+ 343 0050 03       		.uleb128 0x3
+ 344 0051 0E       		.uleb128 0xe
+ 345 0052 3A       		.uleb128 0x3a
+ 346 0053 0B       		.uleb128 0xb
+ 347 0054 3B       		.uleb128 0x3b
+ 348 0055 0B       		.uleb128 0xb
+ 349 0056 49       		.uleb128 0x49
+ 350 0057 13       		.uleb128 0x13
+ 351 0058 02       		.uleb128 0x2
+ 352 0059 06       		.uleb128 0x6
+ 353 005a 00       		.byte	0x0
+ 354 005b 00       		.byte	0x0
+ 355 005c 07       		.uleb128 0x7
+ 356 005d 2E       		.uleb128 0x2e
+ 357 005e 00       		.byte	0x0
+ 358 005f 3F       		.uleb128 0x3f
+ 359 0060 0C       		.uleb128 0xc
+ 360 0061 03       		.uleb128 0x3
+ 361 0062 0E       		.uleb128 0xe
+ 362 0063 3A       		.uleb128 0x3a
+ 363 0064 0B       		.uleb128 0xb
+ 364 0065 3B       		.uleb128 0x3b
+ 365 0066 0B       		.uleb128 0xb
+ 366 0067 11       		.uleb128 0x11
+ 367 0068 01       		.uleb128 0x1
+ 368 0069 12       		.uleb128 0x12
+ 369 006a 01       		.uleb128 0x1
+ 370 006b 40       		.uleb128 0x40
+ 371 006c 0A       		.uleb128 0xa
+ 372 006d 00       		.byte	0x0
+ 373 006e 00       		.byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 8
+
+
+ 374 006f 00       		.byte	0x0
+ 375              		.section	.debug_pubnames,"",%progbits
+ 376 0000 2F000000 		.4byte	0x2f
+ 377 0004 0200     		.2byte	0x2
+ 378 0006 00000000 		.4byte	.Ldebug_info0
+ 379 000a A6000000 		.4byte	0xa6
+ 380 000e 5A000000 		.4byte	0x5a
+ 381 0012 696E6974 		.ascii	"initPWM\000"
+ 381      50574D00 
+ 382 001a 81000000 		.4byte	0x81
+ 383 001e 70776D4F 		.ascii	"pwmON\000"
+ 383      4E00
+ 384 0024 93000000 		.4byte	0x93
+ 385 0028 70776D4F 		.ascii	"pwmOFF\000"
+ 385      464600
+ 386 002f 00000000 		.4byte	0x0
+ 387              		.section	.debug_aranges,"",%progbits
+ 388 0000 1C000000 		.4byte	0x1c
+ 389 0004 0200     		.2byte	0x2
+ 390 0006 00000000 		.4byte	.Ldebug_info0
+ 391 000a 04       		.byte	0x4
+ 392 000b 00       		.byte	0x0
+ 393 000c 0000     		.2byte	0x0
+ 394 000e 0000     		.2byte	0x0
+ 395 0010 00000000 		.4byte	.Ltext0
+ 396 0014 68000000 		.4byte	.Letext0-.Ltext0
+ 397 0018 00000000 		.4byte	0x0
+ 398 001c 00000000 		.4byte	0x0
+ 399              		.section	.debug_str,"MS",%progbits,1
+ 400              	.LASF2:
+ 401 0000 756E7369 		.ascii	"unsigned int\000"
+ 401      676E6564 
+ 401      20696E74 
+ 401      00
+ 402              	.LASF10:
+ 403 000d 696E6974 		.ascii	"initPWM\000"
+ 403      50574D00 
+ 404              	.LASF3:
+ 405 0015 7369676E 		.ascii	"signed char\000"
+ 405      65642063 
+ 405      68617200 
+ 406              	.LASF1:
+ 407 0021 73686F72 		.ascii	"short unsigned int\000"
+ 407      7420756E 
+ 407      7369676E 
+ 407      65642069 
+ 407      6E7400
+ 408              	.LASF11:
+ 409 0034 66726571 		.ascii	"frequency\000"
+ 409      75656E63 
+ 409      7900
+ 410              	.LASF4:
+ 411 003e 73686F72 		.ascii	"short int\000"
+ 411      7420696E 
+ 411      7400
+ 412              	.LASF8:
+ 413 0048 70776D2E 		.ascii	"pwm.c\000"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 9
+
+
+ 413      6300
+ 414              	.LASF6:
+ 415 004e 70776D4F 		.ascii	"pwmOFF\000"
+ 415      464600
+ 416              	.LASF7:
+ 417 0055 474E5520 		.ascii	"GNU C 4.1.1\000"
+ 417      4320342E 
+ 417      312E3100 
+ 418              	.LASF5:
+ 419 0061 70776D4F 		.ascii	"pwmON\000"
+ 419      4E00
+ 420              	.LASF9:
+ 421 0067 2F637967 		.ascii	"/cygdrive/c/Users/embedded/Desktop/SystemyWbudowane"
+ 421      64726976 
+ 421      652F632F 
+ 421      55736572 
+ 421      732F656D 
+ 422 009a 4B4F4E49 		.ascii	"KONIEC/projektZamek/2138\000"
+ 422      45432F70 
+ 422      726F6A65 
+ 422      6B745A61 
+ 422      6D656B2F 
+ 423              	.LASF0:
+ 424 00b3 756E7369 		.ascii	"unsigned char\000"
+ 424      676E6564 
+ 424      20636861 
+ 424      7200
+ 425              		.ident	"GCC: (GNU) 4.1.1"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s 			page 10
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 pwm.c
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:1      .text:00000000 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:16     .text:00000000 initPWM
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:73     .text:0000003c $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:85     .text:00000050 pwmON
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:82     .text:00000050 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:101    .text:00000058 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:109    .text:0000005c pwmOFF
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:106    .text:0000005c $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/cczDfzEP.s:125    .text:00000064 $d
+
+NO UNDEFINED SYMBOLS

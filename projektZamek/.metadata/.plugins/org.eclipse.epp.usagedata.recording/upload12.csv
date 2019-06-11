@@ -1,0 +1,26 @@
+what,kind,bundleId,bundleVersion,description,time
+java.vm.vendor,sysinfo,,,"Sun Microsystems Inc.",1558003855649
+java.vm.version,sysinfo,,,"20.2-b06",1558003855649
+started,bundle,org.eclipse.cdt.managedbuilder.ui,5.1.0.200909110608,"org.eclipse.cdt.managedbuilder.ui",1558003874727
+started,bundle,org.eclipse.cdt.managedbuilder.core,6.0.0.200909110608,"org.eclipse.cdt.managedbuilder.core",1558003874743
+started,bundle,org.eclipse.cdt.managedbuilder.gnu.ui,5.0.100.200909110608,"org.eclipse.cdt.managedbuilder.gnu.ui",1558003874931
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003875040
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003882868
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003888337
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003922977
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.import",1558003923009
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.import",1558003923009
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003927399
+started,bundle,org.eclipse.core.variables,3.2.200.v20090521,"org.eclipse.core.variables",1558003950071
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003950087
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.import",1558003950102
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.import",1558003950102
+started,bundle,org.eclipse.debug.core,3.5.1.v20091103_r352,"org.eclipse.debug.core",1558003950102
+started,bundle,org.eclipse.cdt.make.core,6.0.0.200909110608,"org.eclipse.cdt.make.core",1558003950134
+opened,view,org.eclipse.ui.console,3.4.0.v20090513,"org.eclipse.ui.console.ConsoleView",1558003951134
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003954696
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558003971259
+started,bundle,org.eclipse.search,3.5.1.r351_v20090708-0800,"org.eclipse.search",1558003979462
+started,bundle,org.eclipse.compare.core,3.5.0.I20090430-0408,"org.eclipse.compare.core",1558003980118
+opened,editor,org.eclipse.cdt.ui,5.1.1.200909110608,"org.eclipse.cdt.ui.editor.CEditor",1558003980149
+activated,editor,org.eclipse.cdt.ui,5.1.1.200909110608,"org.eclipse.cdt.ui.editor.CEditor",1558003980306

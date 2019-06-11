@@ -1,0 +1,222 @@
+/******************************************************************************
+ *
+ * Copyright:
+ *    (C) 2000 - 2007 Embedded Artists AB
+ *
+ * Description:
+ *    Main program for LPC2148 Education Board test program
+ * TO JEST TEN
+ *****************************************************************************/
+
+#include "pre_emptive_os/api/osapi.h"
+#include "pre_emptive_os/api/general.h"
+#include <printf_P.h>
+#include <ea_init.h>
+#include <lpc2xxx.h>
+#include <consol.h>
+#include "i2c.h"
+#include "adc.h"
+#include "lcd.h"
+#include "pca9532.h"
+#include "ea_97x60c.h"
+#include "spi.h"
+#include "rfid.h"
+
+#define PROC1_STACK_SIZE 1024
+#define PROC2_STACK_SIZE 1024
+#define INIT_STACK_SIZE  400
+
+static tU8 proc1Stack[PROC1_STACK_SIZE];
+static tU8 proc2Stack[PROC2_STACK_SIZE];
+static tU8 initStack[INIT_STACK_SIZE];
+static tU8 pid1;
+static tU8 pid2;
+
+static void proc1(void* arg);
+static void proc2(void* arg);
+static void initProc(void* arg);
+
+volatile tU32 msClock;
+volatile tU8 killProc1 = FALSE;
+volatile tU8 rgbSpeed = 10;
+
+tU8 serNum[5];
+
+/******************************************************************************
+** Function name:		udelay
+**
+** Descriptions:
+**
+** parameters:			delay length
+** Returned value:		None
+**
+******************************************************************************/
+void udelay( unsigned int delayInUs )
+{
+  /*
+   * setup timer #1 for delay
+   */
+  T1TCR = 0x02;          //stop and reset timer
+  T1PR  = 0x00;          //set prescaler to zero
+  T1MR0 = (((long)delayInUs-1) * (long)CORE_FREQ/1000) / 1000;
+  T1IR  = 0xff;          //reset all interrrupt flags
+  T1MCR = 0x04;          //stop timer on match
+  T1TCR = 0x01;          //start timer
+
+  //wait until delay time has elapsed
+  while (T1TCR & 0x01)
+    ;
+}
+/*****************************************************************************
+ *
+ * Description:
+ *    The first function to execute
+ *
+ ****************************************************************************/
+int
+main(void)
+{
+  tU8 error;
+  tU8 pid;
+
+  osInit();
+  osCreateProcess(initProc, initStack, INIT_STACK_SIZE, &pid, 1, NULL, &error);
+  osStartProcess(pid, &error);
+  
+  osStart();
+  return 0;
+}
+
+
+static KEYPIN_CENTER = (1 << 8);   //P0.8
+static KEYPIN_UP     = (1 << 10);  //P0.10
+static KEYPIN_RIGHT  = (1 << 11);  //P0.11
+static KEYPIN_LEFT   = (1 << 9);  //P0.9
+static KEYPIN_DOWN   = (1 << 12);  //P0.12
+
+
+static tU8 checkJoystick(int key)	{
+	tU8 wcisnietyKlawisz;
+	if	((IOPIN & key) == 0)	{ // sprawdza czy wcisniety
+		osSleep(5); // czeka  50 ms - to nam zapewnia eliminacje drgan  (rozwiazanie programowe)
+	if	((IOPIN & key) == 0)	{  // sprawdza czy wcisniety
+		wcisnietyKlawisz = key;  // ustawia ktory klawisz jest wcisniety
+		return TRUE;
+	}	else	{
+		wcisnietyKlawisz = 0;  // zeruje wcisniety klawisz
+		return FALSE;
+		}
+	}     else	{
+		wcisnietyKlawisz = 0;
+		return FALSE;
+		}
+}
+
+
+static void proc1(void* arg) {
+//
+//  IODIR |= 0x00260000;  //RGB
+//  IOSET  = 0x00260000;
+//
+//  IODIR1 |= 0x000F0000;  //LEDs
+//  IOSET1  = 0x000F0000;
+//
+//
+//  SPI_Master_Init();
+//
+//for(;;) {
+//
+//	static tU8 d[8];
+//
+////	SPI_Master_Write((0x32<<1)&0x7E);
+////	osSleep(1);
+////	SPI_Master_Write(0x06);
+//
+////	SPI_Master_Write(((0x37<<1)&0x7E) | 0x80);
+//	SPI_Master_Write(((0x12<<1)&0x7E));
+//	osSleep(1);
+//	SPI_Master_Write(0x00);
+//	osSleep(1);
+//	SPI_Master_Write(((0x13<<1)&0x7E));
+//	osSleep(1);
+//	SPI_Master_Write(0x00);
+//	osSleep(1);
+//	SPI_Master_Write(((0x24<<1)&0x7E));
+//	osSleep(1);
+//	SPI_Master_Write(0x26);
+//
+//
+//	osSleep(5);
+//	SPI_Master_Write(((0x0E<<1)&0x7E) | 0x80);
+//	static tU8 i = 0x00;
+//	i = 0x00;
+//	for(;i < 0x08;){
+//		*(d + i) = SPI_Master_Read();
+//		i = i + 0x01;
+//	}
+//
+//
+//	printf("data = %x %x %x %x %x %x %x %x\n", d[0], 0x08, d[2], d[3], d[4], d[5], d[6], d[7]);
+//	osSleep(50);
+//
+//}
+		SPI_Master_Init();
+
+	    init();
+	    udelay(30000);
+
+	    printf("uC dziala poprawnie!\n");
+
+	    while(1){
+	        printf("Czekam na karte... \n");
+	        udelay(100000);
+	        if (isCard()) {
+	             printf("Karta wykryta\n");
+	            // jesli karta wykryta odczyt seriala
+	            if (readCardSerial()==1){
+	                printf("Serial: %x:%x:%x:%x:%x \n", serNum[0], serNum[1], serNum[2], serNum[3], serNum[4]);
+	            }
+	        }
+
+	    }
+
+}
+
+/*****************************************************************************
+ *
+ * Description:
+ *    The entry function for the initialization process.
+ *
+ * Params:
+ *    [in] arg - This parameter is not used in this application.
+ *
+ ****************************************************************************/
+static void
+initProc(void* arg)
+{
+  tU8 error;
+
+  eaInit();   //initialize printf
+  i2cInit();  //initialize I2C
+  osCreateProcess(proc1, proc1Stack, PROC1_STACK_SIZE, &pid1, 3, NULL, &error);
+  osStartProcess(pid1, &error);
+  osDeleteProcess();
+}
+
+/*****************************************************************************
+ *
+ * Description:
+ *    The timer tick entry function that is called once every timer tick
+ *    interrupt in the RTOS. Observe that any processing in this
+ *    function must be kept as short as possible since this function
+ *    execute in interrupt context.
+ *
+ * Params:
+ *    [in] elapsedTime - The number of elapsed milliseconds since last call.
+ *
+ ****************************************************************************/
+void
+appTick(tU32 elapsedTime)
+{
+  msClock += elapsedTime;
+}

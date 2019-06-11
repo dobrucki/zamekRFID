@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;2138/rf_ardu.c&apos; to &apos;rfid.c&apos;" description="Rename resource &apos;rf_ardu.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="rf_ardu.c" name="rfid.c" stamp="1558342993083" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;2138/rf_ardu.h&apos; to &apos;rfid.h&apos;" description="Rename resource &apos;rf_ardu.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="rf_ardu.h" name="rfid.h" stamp="1558343000786" updateReferences="true"/>
+</session>

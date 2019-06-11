@@ -1,0 +1,2981 @@
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 1
+
+
+   1              		.code	16
+   2              		.file	"rfid.c"
+   3              		.section	.debug_abbrev,"",%progbits
+   4              	.Ldebug_abbrev0:
+   5              		.section	.debug_info,"",%progbits
+   6              	.Ldebug_info0:
+   7              		.section	.debug_line,"",%progbits
+   8              	.Ldebug_line0:
+   9 0000 EF000000 		.text
+   9      02003E00 
+   9      00000201 
+   9      FB0E0D00 
+   9      01010101 
+  10              	.Ltext0:
+  11              		.align	2
+  12              		.global	checkIfValidTag
+  13              		.code 16
+  14              		.thumb_func
+  15              		.type	checkIfValidTag, %function
+  16              	checkIfValidTag:
+  17              	.LFB13:
+  18              		.file 1 "rfid.c"
+   1:rfid.c        **** #include "rfid.h"
+   2:rfid.c        **** 
+   3:rfid.c        **** void writeMFRC522(tU8 addr, tU8 val)
+   4:rfid.c        **** {
+   5:rfid.c        ****    IOCLR = (1 << 7)
+   6:rfid.c        **** 		; // SSEL = 0, enable SPI communication with slave
+   7:rfid.c        ****    SPI_Master_Write((addr << 1) & 0x7E)
+   8:rfid.c        **** 		; // Send  register address	
+   9:rfid.c        ****    SPI_Master_Write(val)
+  10:rfid.c        **** 		; // Write value to register under sended address	
+  11:rfid.c        ****    IOSET = (1 << 7)
+  12:rfid.c        **** 		; // SSEL = 1, disable SPI communication with slave
+  13:rfid.c        **** }
+  14:rfid.c        **** 
+  15:rfid.c        **** 
+  16:rfid.c        **** tU8 readMFRC522(tU8 addr)
+  17:rfid.c        **** {
+  18:rfid.c        ****    tU8 val
+  19:rfid.c        **** 		; // Keep received data
+  20:rfid.c        ****    IOCLR = (1 << 7)
+  21:rfid.c        **** 		; // SSEL = 0, enable SPI communication with slave
+  22:rfid.c        ****    SPI_Master_Write(((addr << 1) & 0x7E) | 0x80)
+  23:rfid.c        **** 		; // Send register address 0x80 (to read data from the MFRC522 the MSB must be set to logic 1)
+  24:rfid.c        ****    val = SPI_Master_Read()
+  25:rfid.c        **** 		; // Read data from SPI
+  26:rfid.c        ****    IOSET = (1 << 7)
+  27:rfid.c        **** 		; // SSEL = 1, disable SPI communication with slave
+  28:rfid.c        ****    return val;   
+  29:rfid.c        **** }
+  30:rfid.c        **** 
+  31:rfid.c        **** void reset()
+  32:rfid.c        **** {
+  33:rfid.c        ****    writeMFRC522(CommandReg, PCD_RESETPHASE)
+  34:rfid.c        **** 		; // Reset MFRC522
+  35:rfid.c        **** }
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 2
+
+
+  36:rfid.c        **** 
+  37:rfid.c        **** 
+  38:rfid.c        **** void setBitMask(tU8 reg, tU8 mask)  
+  39:rfid.c        **** { 
+  40:rfid.c        ****     tU8 tmp;
+  41:rfid.c        ****     tmp = readMFRC522(reg);
+  42:rfid.c        ****     writeMFRC522(reg, tmp | mask)
+  43:rfid.c        **** 		; // Set bit mask
+  44:rfid.c        **** }
+  45:rfid.c        **** 
+  46:rfid.c        **** 
+  47:rfid.c        **** void clearBitMask(tU8 reg, tU8 mask)  
+  48:rfid.c        **** {
+  49:rfid.c        ****     tU8 tmp;
+  50:rfid.c        ****     tmp = readMFRC522(reg);
+  51:rfid.c        ****     writeMFRC522(reg, tmp & (~mask))
+  52:rfid.c        **** 		;  // Clear bit mask
+  53:rfid.c        **** } 
+  54:rfid.c        **** 
+  55:rfid.c        **** 
+  56:rfid.c        **** void antennaOn()
+  57:rfid.c        **** {
+  58:rfid.c        ****    tU8 temp;
+  59:rfid.c        **** 
+  60:rfid.c        ****    temp = readMFRC522(TxControlReg);
+  61:rfid.c        ****    if (!(temp & 0x03))
+  62:rfid.c        ****    {
+  63:rfid.c        ****       setBitMask(TxControlReg, 0x03)
+  64:rfid.c        **** 		; // First two bits from the TxControlReg must be set to logic 1
+  65:rfid.c        ****    }
+  66:rfid.c        **** }
+  67:rfid.c        **** 
+  68:rfid.c        **** 
+  69:rfid.c        **** tU8 MFRC522ToCard(tU8 command, tU8 *sendData, tU8 sendLen, tU8 *backData, tU32 *backLen)
+  70:rfid.c        **** {
+  71:rfid.c        ****     tU8 status = MI_ERR;
+  72:rfid.c        ****     tU8 irqEn = 0x77;
+  73:rfid.c        ****     tU8 waitIRq = 0x30;
+  74:rfid.c        ****     tU8 lastBits;
+  75:rfid.c        ****     tU8 n;
+  76:rfid.c        ****     tU32 i;
+  77:rfid.c        **** 
+  78:rfid.c        ****     writeMFRC522(CommIEnReg, irqEn  | 0x80);
+  79:rfid.c        ****     clearBitMask(CommIrqReg, 0x80);
+  80:rfid.c        ****     setBitMask(FIFOLevelReg, 0x80);
+  81:rfid.c        **** 
+  82:rfid.c        ****    writeMFRC522(CommandReg, PCD_IDLE);
+  83:rfid.c        **** 
+  84:rfid.c        ****     for (i = 0; i < sendLen; i++)
+  85:rfid.c        ****     {   
+  86:rfid.c        ****       writeMFRC522(FIFODataReg, sendData[i]);    
+  87:rfid.c        ****     }
+  88:rfid.c        **** 
+  89:rfid.c        ****    writeMFRC522(CommandReg, command)
+  90:rfid.c        **** 		; // Transmits data from FIFO buffer to antenna and automatically activates the receiver after tr
+  91:rfid.c        ****     
+  92:rfid.c        ****    setBitMask(BitFramingReg, 0x80)
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 3
+
+
+  93:rfid.c        **** 		; // Starts the transmission of dataonly valid in combination with the Transceive command   
+  94:rfid.c        **** 
+  95:rfid.c        ****    i = 2000;
+  96:rfid.c        ****     do 
+  97:rfid.c        ****     {
+  98:rfid.c        ****         n = readMFRC522(CommIrqReg);
+  99:rfid.c        ****         i--;
+ 100:rfid.c        ****     }
+ 101:rfid.c        ****     while ((i != 0) && !(n & 0x01) && !(n & waitIRq));
+ 102:rfid.c        **** 
+ 103:rfid.c        ****     clearBitMask(BitFramingReg, 0x80)
+ 104:rfid.c        **** 		;  // StartSend = 0
+ 105:rfid.c        **** 
+ 106:rfid.c        ****     if (i != 0)
+ 107:rfid.c        ****     {    
+ 108:rfid.c        ****         if(!(readMFRC522(ErrorReg) & 0x1B))
+ 109:rfid.c        ****         {
+ 110:rfid.c        ****             
+ 111:rfid.c        **** 			status = MI_OK;
+ 112:rfid.c        ****             
+ 113:rfid.c        **** 			if (n & irqEn & 0x01)
+ 114:rfid.c        ****             {   
+ 115:rfid.c        ****             status = MI_NOTAGERR;
+ 116:rfid.c        **** 			}
+ 117:rfid.c        **** 
+ 118:rfid.c        ****              n = readMFRC522(FIFOLevelReg)
+ 119:rfid.c        **** 				; // Number of bytes stored in the FIFO buffer
+ 120:rfid.c        ****              lastBits = readMFRC522(ControlReg) & 0x07;
+ 121:rfid.c        ****             
+ 122:rfid.c        **** 			if (lastBits)
+ 123:rfid.c        ****             {   
+ 124:rfid.c        ****                *backLen = (n - 1) * 8 + lastBits;   
+ 125:rfid.c        **** 			}	else {   
+ 126:rfid.c        ****                   *backLen = n*8;   
+ 127:rfid.c        **** 				}
+ 128:rfid.c        **** 
+ 129:rfid.c        ****                 if (n == 0)
+ 130:rfid.c        ****                 {   
+ 131:rfid.c        **** 					n = 1;    
+ 132:rfid.c        **** 				}
+ 133:rfid.c        **** 				
+ 134:rfid.c        ****                 if (n > MAX_LEN)
+ 135:rfid.c        ****                 {   
+ 136:rfid.c        **** 					n = MAX_LEN;   
+ 137:rfid.c        **** 				}
+ 138:rfid.c        **** 
+ 139:rfid.c        ****                 for (i=0; i < n; i++)
+ 140:rfid.c        ****                 {   
+ 141:rfid.c        **** 					backData[i] = readMFRC522(FIFODataReg);    
+ 142:rfid.c        **** 				}
+ 143:rfid.c        ****     
+ 144:rfid.c        ****         }
+ 145:rfid.c        ****         else	{   
+ 146:rfid.c        ****          status = MI_ERR;  
+ 147:rfid.c        ****       }
+ 148:rfid.c        **** 
+ 149:rfid.c        ****     }
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 4
+
+
+ 150:rfid.c        **** 
+ 151:rfid.c        ****     return status;
+ 152:rfid.c        **** }
+ 153:rfid.c        **** 
+ 154:rfid.c        **** 
+ 155:rfid.c        **** 
+ 156:rfid.c        **** tU8  MFRC522Request(tU8 reqMode, tU8 *TagType)
+ 157:rfid.c        **** {
+ 158:rfid.c        ****    tU8 status;  
+ 159:rfid.c        ****    tU32 backBits;
+ 160:rfid.c        **** 
+ 161:rfid.c        ****    writeMFRC522(BitFramingReg, 0x07);
+ 162:rfid.c        **** 
+ 163:rfid.c        ****    TagType[0] = reqMode;
+ 164:rfid.c        ****    
+ 165:rfid.c        ****    status = MFRC522ToCard(PCD_TRANSCEIVE, TagType, 1, TagType, &backBits);
+ 166:rfid.c        **** 
+ 167:rfid.c        ****    if ((status != MI_OK) || (backBits != 0x10))
+ 168:rfid.c        ****    {    
+ 169:rfid.c        ****       status = MI_ERR;
+ 170:rfid.c        ****    }
+ 171:rfid.c        **** 
+ 172:rfid.c        ****    return status;
+ 173:rfid.c        **** }
+ 174:rfid.c        **** 
+ 175:rfid.c        **** 
+ 176:rfid.c        **** 
+ 177:rfid.c        **** tU8 anticoll(tU8 *serNum)
+ 178:rfid.c        **** {
+ 179:rfid.c        ****     tU8 status;
+ 180:rfid.c        ****     tU8 i;
+ 181:rfid.c        ****     tU8 serNumCheck = 0;
+ 182:rfid.c        ****     tU32 unLen;
+ 183:rfid.c        ****    writeMFRC522(BitFramingReg, 0x00);
+ 184:rfid.c        **** 
+ 185:rfid.c        ****     serNum[0] = PICC_ANTICOLL;
+ 186:rfid.c        ****     serNum[1] = 0x20;
+ 187:rfid.c        ****     status = MFRC522ToCard(PCD_TRANSCEIVE, serNum, 2, serNum, &unLen);
+ 188:rfid.c        **** 
+ 189:rfid.c        ****     if (status == MI_OK)
+ 190:rfid.c        ****    {
+ 191:rfid.c        ****       for (i = 0; i < 4; i++)
+ 192:rfid.c        ****       {   
+ 193:rfid.c        ****           serNumCheck ^= serNum[i];
+ 194:rfid.c        ****       }
+ 195:rfid.c        ****       if (serNumCheck != serNum[i])
+ 196:rfid.c        ****       {   
+ 197:rfid.c        ****          status = MI_ERR;    
+ 198:rfid.c        ****       }
+ 199:rfid.c        ****     }
+ 200:rfid.c        **** 
+ 201:rfid.c        ****     return status;
+ 202:rfid.c        **** }
+ 203:rfid.c        **** 
+ 204:rfid.c        **** 
+ 205:rfid.c        **** 
+ 206:rfid.c        **** tU8 isCard()
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 5
+
+
+ 207:rfid.c        ****  {
+ 208:rfid.c        ****    tU8 status;  
+ 209:rfid.c        ****    tU8 str[MAX_LEN];
+ 210:rfid.c        **** 
+ 211:rfid.c        ****    status = MFRC522Request(PICC_REQIDL, str);
+ 212:rfid.c        ****    
+ 213:rfid.c        ****    if (status == MI_OK) {
+ 214:rfid.c        ****       return 1;
+ 215:rfid.c        ****    } else { 
+ 216:rfid.c        ****       return 0; 
+ 217:rfid.c        ****    }
+ 218:rfid.c        ****    
+ 219:rfid.c        ****  }
+ 220:rfid.c        ****  
+ 221:rfid.c        **** 
+ 222:rfid.c        **** tU8 readCardSerial() 
+ 223:rfid.c        **** {
+ 224:rfid.c        ****    tU8 status;
+ 225:rfid.c        ****    tU8 str[MAX_LEN];
+ 226:rfid.c        **** 
+ 227:rfid.c        ****    status = anticoll(str);
+ 228:rfid.c        ****    
+ 229:rfid.c        ****    static tU8 i;
+ 230:rfid.c        ****    for (i = 0; i < 4; i++) {
+ 231:rfid.c        **** 	   *(serNum + i) = *(str + i);
+ 232:rfid.c        ****    }
+ 233:rfid.c        **** 
+ 234:rfid.c        ****    if (status == MI_OK) {
+ 235:rfid.c        ****       return 1;
+ 236:rfid.c        ****    } else {
+ 237:rfid.c        ****       return 0;
+ 238:rfid.c        ****    }
+ 239:rfid.c        **** 
+ 240:rfid.c        ****  }
+ 241:rfid.c        **** 
+ 242:rfid.c        **** tU8 checkIfValidTag() {
+  19              		.loc 1 242 0
+  20 0000 00B5     		push	{lr}
+  21              	.LCFI0:
+  22 0002 81B0     		sub	sp, sp, #4
+  23              	.LCFI1:
+ 243:rfid.c        **** 	tU8 validTag[4] = {0xe7, 0x92, 0xde, 0x03};
+  24              		.loc 1 243 0
+  25 0004 0C49     		ldr	r1, .L10
+  26 0006 6846     		mov	r0, sp
+  27 0008 0422     		mov	r2, #4
+  28 000a FFF7FEFF 		bl	memcpy
+  29 000e 0020     		mov	r0, #0
+  30              	.L2:
+ 244:rfid.c        **** 	tU8 i;
+ 245:rfid.c        **** 	for (i = 0; i < 4; i++) {
+ 246:rfid.c        **** 		if(serNum[i] != validTag[i]) {
+  31              		.loc 1 246 0
+  32 0010 0A49     		ldr	r1, .L10+4
+  33 0012 6A46     		mov	r2, sp
+  34 0014 435C     		ldrb	r3, [r0, r1]
+  35 0016 825C     		ldrb	r2, [r0, r2]
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 6
+
+
+  36 0018 9342     		cmp	r3, r2
+  37 001a 01D0     		beq	.L3
+  38 001c 0020     		mov	r0, #0
+  39 001e 08E0     		b	.L5
+  40              	.L3:
+  41 0020 0130     		add	r0, r0, #1
+  42              		.loc 1 245 0
+  43 0022 0428     		cmp	r0, #4
+  44 0024 F4D1     		bne	.L2
+ 247:rfid.c        **** 			return FALSE;
+ 248:rfid.c        **** 		}
+ 249:rfid.c        **** 	}
+ 250:rfid.c        **** 	for (i = 0; i < 4; i++){
+ 251:rfid.c        **** 		serNum[i] = 0x00;
+  45              		.loc 1 251 0
+  46 0026 0023     		mov	r3, #0
+  47 0028 0B70     		strb	r3, [r1]
+  48 002a 4B70     		strb	r3, [r1, #1]
+  49 002c 8B70     		strb	r3, [r1, #2]
+  50 002e CB70     		strb	r3, [r1, #3]
+  51 0030 0120     		mov	r0, #1
+  52              	.L5:
+ 252:rfid.c        **** 	}
+ 253:rfid.c        **** 	return TRUE;
+ 254:rfid.c        **** }
+  53              		.loc 1 254 0
+  54 0032 01B0     		add	sp, sp, #4
+  55              		@ sp needed for prologue
+  56 0034 02BC     		pop	{r1}
+  57 0036 0847     		bx	r1
+  58              	.L11:
+  59              		.align	2
+  60              	.L10:
+  61 0038 00000000 		.word	C.5.1444
+  62 003c 00000000 		.word	serNum
+  63              	.LFE13:
+  64              		.size	checkIfValidTag, .-checkIfValidTag
+  65              		.align	2
+  66              		.global	writeMFRC522
+  67              		.code 16
+  68              		.thumb_func
+  69              		.type	writeMFRC522, %function
+  70              	writeMFRC522:
+  71              	.LFB2:
+  72              		.loc 1 4 0
+  73 0040 30B5     		push	{r4, r5, lr}
+  74              	.LCFI2:
+  75              	.LVL0:
+  76              		.loc 1 5 0
+  77 0042 094B     		ldr	r3, .L14
+  78 0044 8025     		mov	r5, #128
+  79              		.loc 1 4 0
+  80 0046 0C06     		lsl	r4, r1, #24
+  81              		.loc 1 5 0
+  82 0048 1D60     		str	r5, [r3]
+  83              		.loc 1 7 0
+  84 004a 4000     		lsl	r0, r0, #1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 7
+
+
+  85              	.LVL1:
+  86 004c 7E23     		mov	r3, #126
+  87 004e 1840     		and	r0, r0, r3
+  88              		.loc 1 4 0
+  89 0050 240E     		lsr	r4, r4, #24
+  90              		.loc 1 7 0
+  91 0052 FFF7FEFF 		bl	SPI_Master_Write
+  92              	.LVL2:
+  93              		.loc 1 9 0
+  94 0056 201C     		mov	r0, r4
+  95 0058 FFF7FEFF 		bl	SPI_Master_Write
+  96              		.loc 1 11 0
+  97 005c 034B     		ldr	r3, .L14+4
+  98              		.loc 1 13 0
+  99              		@ sp needed for prologue
+ 100              		.loc 1 11 0
+ 101 005e 1D60     		str	r5, [r3]
+ 102              	.LVL3:
+ 103              		.loc 1 13 0
+ 104 0060 30BC     		pop	{r4, r5}
+ 105 0062 01BC     		pop	{r0}
+ 106 0064 0047     		bx	r0
+ 107              	.L15:
+ 108 0066 0000     		.align	2
+ 109              	.L14:
+ 110 0068 0C8002E0 		.word	-536707060
+ 111 006c 048002E0 		.word	-536707068
+ 112              	.LFE2:
+ 113              		.size	writeMFRC522, .-writeMFRC522
+ 114              		.align	2
+ 115              		.global	reset
+ 116              		.code 16
+ 117              		.thumb_func
+ 118              		.type	reset, %function
+ 119              	reset:
+ 120              	.LFB4:
+ 121              		.loc 1 32 0
+ 122 0070 00B5     		push	{lr}
+ 123              	.LCFI3:
+ 124              		.loc 1 33 0
+ 125 0072 0120     		mov	r0, #1
+ 126 0074 0F21     		mov	r1, #15
+ 127 0076 FFF7FEFF 		bl	writeMFRC522
+ 128              		.loc 1 35 0
+ 129              		@ sp needed for prologue
+ 130 007a 01BC     		pop	{r0}
+ 131 007c 0047     		bx	r0
+ 132              	.LFE4:
+ 133              		.size	reset, .-reset
+ 134 007e 0000     		.align	2
+ 135              		.global	readMFRC522
+ 136              		.code 16
+ 137              		.thumb_func
+ 138              		.type	readMFRC522, %function
+ 139              	readMFRC522:
+ 140              	.LFB3:
+ 141              		.loc 1 17 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 8
+
+
+ 142 0080 10B5     		push	{r4, lr}
+ 143              	.LCFI4:
+ 144              	.LVL4:
+ 145              		.loc 1 20 0
+ 146 0082 0A4B     		ldr	r3, .L20
+ 147 0084 8024     		mov	r4, #128
+ 148 0086 1C60     		str	r4, [r3]
+ 149              		.loc 1 22 0
+ 150 0088 4000     		lsl	r0, r0, #1
+ 151              	.LVL5:
+ 152 008a 7E23     		mov	r3, #126
+ 153 008c 1840     		and	r0, r0, r3
+ 154 008e 8023     		mov	r3, #128
+ 155 0090 5B42     		neg	r3, r3
+ 156 0092 1843     		orr	r0, r0, r3
+ 157 0094 0006     		lsl	r0, r0, #24
+ 158 0096 000E     		lsr	r0, r0, #24
+ 159 0098 FFF7FEFF 		bl	SPI_Master_Write
+ 160              		.loc 1 24 0
+ 161 009c FFF7FEFF 		bl	SPI_Master_Read
+ 162              		.loc 1 26 0
+ 163 00a0 034B     		ldr	r3, .L20+4
+ 164              		.loc 1 29 0
+ 165              		@ sp needed for prologue
+ 166              		.loc 1 26 0
+ 167 00a2 1C60     		str	r4, [r3]
+ 168              		.loc 1 29 0
+ 169 00a4 10BC     		pop	{r4}
+ 170 00a6 02BC     		pop	{r1}
+ 171 00a8 0847     		bx	r1
+ 172              	.L21:
+ 173 00aa 0000     		.align	2
+ 174              	.L20:
+ 175 00ac 0C8002E0 		.word	-536707060
+ 176 00b0 048002E0 		.word	-536707068
+ 177              	.LFE3:
+ 178              		.size	readMFRC522, .-readMFRC522
+ 179              		.align	2
+ 180              		.global	clearBitMask
+ 181              		.code 16
+ 182              		.thumb_func
+ 183              		.type	clearBitMask, %function
+ 184              	clearBitMask:
+ 185              	.LFB6:
+ 186              		.loc 1 48 0
+ 187 00b4 30B5     		push	{r4, r5, lr}
+ 188              	.LCFI5:
+ 189              	.LVL6:
+ 190              		.loc 1 48 0
+ 191 00b6 0506     		lsl	r5, r0, #24
+ 192 00b8 2D0E     		lsr	r5, r5, #24
+ 193              		.loc 1 50 0
+ 194 00ba 281C     		mov	r0, r5
+ 195              	.LVL7:
+ 196              		.loc 1 48 0
+ 197 00bc 0C06     		lsl	r4, r1, #24
+ 198              		.loc 1 50 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 9
+
+
+ 199 00be FFF7FEFF 		bl	readMFRC522
+ 200              	.LVL8:
+ 201              		.loc 1 48 0
+ 202 00c2 240E     		lsr	r4, r4, #24
+ 203              	.LVL9:
+ 204              		.loc 1 50 0
+ 205 00c4 011C     		mov	r1, r0
+ 206              		.loc 1 51 0
+ 207 00c6 A143     		bic	r1, r1, r4
+ 208 00c8 0906     		lsl	r1, r1, #24
+ 209 00ca 281C     		mov	r0, r5
+ 210 00cc 090E     		lsr	r1, r1, #24
+ 211 00ce FFF7FEFF 		bl	writeMFRC522
+ 212              		.loc 1 53 0
+ 213              		@ sp needed for prologue
+ 214              	.LVL10:
+ 215              	.LVL11:
+ 216 00d2 30BC     		pop	{r4, r5}
+ 217 00d4 01BC     		pop	{r0}
+ 218 00d6 0047     		bx	r0
+ 219              	.LFE6:
+ 220              		.size	clearBitMask, .-clearBitMask
+ 221              		.align	2
+ 222              		.global	setBitMask
+ 223              		.code 16
+ 224              		.thumb_func
+ 225              		.type	setBitMask, %function
+ 226              	setBitMask:
+ 227              	.LFB5:
+ 228              		.loc 1 39 0
+ 229 00d8 30B5     		push	{r4, r5, lr}
+ 230              	.LCFI6:
+ 231              	.LVL12:
+ 232              		.loc 1 39 0
+ 233 00da 0506     		lsl	r5, r0, #24
+ 234 00dc 2D0E     		lsr	r5, r5, #24
+ 235              		.loc 1 41 0
+ 236 00de 281C     		mov	r0, r5
+ 237              	.LVL13:
+ 238              		.loc 1 39 0
+ 239 00e0 0C06     		lsl	r4, r1, #24
+ 240              		.loc 1 41 0
+ 241 00e2 FFF7FEFF 		bl	readMFRC522
+ 242              	.LVL14:
+ 243              		.loc 1 39 0
+ 244 00e6 240E     		lsr	r4, r4, #24
+ 245              	.LVL15:
+ 246              		.loc 1 41 0
+ 247 00e8 011C     		mov	r1, r0
+ 248              		.loc 1 42 0
+ 249 00ea 2143     		orr	r1, r1, r4
+ 250 00ec 0906     		lsl	r1, r1, #24
+ 251 00ee 281C     		mov	r0, r5
+ 252 00f0 090E     		lsr	r1, r1, #24
+ 253 00f2 FFF7FEFF 		bl	writeMFRC522
+ 254              		.loc 1 44 0
+ 255              		@ sp needed for prologue
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 10
+
+
+ 256              	.LVL16:
+ 257              	.LVL17:
+ 258 00f6 30BC     		pop	{r4, r5}
+ 259 00f8 01BC     		pop	{r0}
+ 260 00fa 0047     		bx	r0
+ 261              	.LFE5:
+ 262              		.size	setBitMask, .-setBitMask
+ 263              		.align	2
+ 264              		.global	MFRC522ToCard
+ 265              		.code 16
+ 266              		.thumb_func
+ 267              		.type	MFRC522ToCard, %function
+ 268              	MFRC522ToCard:
+ 269              	.LFB8:
+ 270              		.loc 1 70 0
+ 271 00fc F0B5     		push	{r4, r5, r6, r7, lr}
+ 272              	.LCFI7:
+ 273              	.LVL18:
+ 274 00fe 0006     		lsl	r0, r0, #24
+ 275              	.LVL19:
+ 276 0100 81B0     		sub	sp, sp, #4
+ 277              	.LCFI8:
+ 278              		.loc 1 70 0
+ 279 0102 1206     		lsl	r2, r2, #24
+ 280              	.LVL20:
+ 281 0104 0F1C     		mov	r7, r1
+ 282 0106 060E     		lsr	r6, r0, #24
+ 283              	.LVL21:
+ 284              		.loc 1 78 0
+ 285 0108 F721     		mov	r1, #247
+ 286              	.LVL22:
+ 287 010a 0220     		mov	r0, #2
+ 288              		.loc 1 70 0
+ 289 010c 0093     		str	r3, [sp]
+ 290 010e 150E     		lsr	r5, r2, #24
+ 291              	.LVL23:
+ 292              		.loc 1 78 0
+ 293 0110 FFF7FEFF 		bl	writeMFRC522
+ 294              	.LVL24:
+ 295              		.loc 1 79 0
+ 296 0114 0420     		mov	r0, #4
+ 297 0116 8021     		mov	r1, #128
+ 298 0118 FFF7FEFF 		bl	clearBitMask
+ 299              		.loc 1 80 0
+ 300 011c 0A20     		mov	r0, #10
+ 301 011e 8021     		mov	r1, #128
+ 302 0120 FFF7FEFF 		bl	setBitMask
+ 303              		.loc 1 82 0
+ 304 0124 0120     		mov	r0, #1
+ 305 0126 0021     		mov	r1, #0
+ 306 0128 FFF7FEFF 		bl	writeMFRC522
+ 307 012c 0024     		mov	r4, #0
+ 308              	.LVL25:
+ 309 012e 04E0     		b	.L27
+ 310              	.L28:
+ 311              		.loc 1 86 0
+ 312 0130 E15D     		ldrb	r1, [r4, r7]
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 11
+
+
+ 313 0132 0920     		mov	r0, #9
+ 314 0134 FFF7FEFF 		bl	writeMFRC522
+ 315              		.loc 1 84 0
+ 316 0138 0134     		add	r4, r4, #1
+ 317              	.L27:
+ 318 013a AC42     		cmp	r4, r5
+ 319 013c F8D1     		bne	.L28
+ 320              		.loc 1 89 0
+ 321 013e 311C     		mov	r1, r6
+ 322 0140 0120     		mov	r0, #1
+ 323 0142 FFF7FEFF 		bl	writeMFRC522
+ 324              		.loc 1 92 0
+ 325 0146 0D20     		mov	r0, #13
+ 326 0148 8021     		mov	r1, #128
+ 327 014a FFF7FEFF 		bl	setBitMask
+ 328              		.loc 1 98 0
+ 329 014e 0420     		mov	r0, #4
+ 330 0150 FFF7FEFF 		bl	readMFRC522
+ 331 0154 254C     		ldr	r4, .L50
+ 332              	.LVL26:
+ 333 0156 061C     		mov	r6, r0
+ 334              	.LVL27:
+ 335 0158 06E0     		b	.L30
+ 336              	.L31:
+ 337 015a 0420     		mov	r0, #4
+ 338 015c FFF7FEFF 		bl	readMFRC522
+ 339              		.loc 1 99 0
+ 340 0160 013C     		sub	r4, r4, #1
+ 341              		.loc 1 98 0
+ 342 0162 061C     		mov	r6, r0
+ 343              		.loc 1 101 0
+ 344 0164 002C     		cmp	r4, #0
+ 345 0166 05D0     		beq	.L32
+ 346              	.L30:
+ 347 0168 F207     		lsl	r2, r6, #31
+ 348 016a 30D4     		bmi	.L33
+ 349 016c 3023     		mov	r3, #48
+ 350 016e 1E42     		tst	r6, r3
+ 351 0170 F3D0     		beq	.L31
+ 352 0172 2CE0     		b	.L33
+ 353              	.L32:
+ 354              		.loc 1 103 0
+ 355 0174 0D20     		mov	r0, #13
+ 356 0176 8021     		mov	r1, #128
+ 357 0178 FFF7FEFF 		bl	clearBitMask
+ 358 017c 31E0     		b	.L49
+ 359              	.L36:
+ 360              		.loc 1 118 0
+ 361 017e 0A20     		mov	r0, #10
+ 362 0180 FFF7FEFF 		bl	readMFRC522
+ 363 0184 041C     		mov	r4, r0
+ 364              	.LVL28:
+ 365              		.loc 1 120 0
+ 366 0186 0C20     		mov	r0, #12
+ 367 0188 FFF7FEFF 		bl	readMFRC522
+ 368 018c 0723     		mov	r3, #7
+ 369 018e E200     		lsl	r2, r4, #3
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 12
+
+
+ 370              		.loc 1 122 0
+ 371 0190 1840     		and	r0, r3
+ 372 0192 05D0     		beq	.L37
+ 373              	.LVL29:
+ 374              		.loc 1 124 0
+ 375 0194 131C     		mov	r3, r2
+ 376 0196 083B     		sub	r3, r3, #8
+ 377 0198 069A     		ldr	r2, [sp, #24]
+ 378 019a C318     		add	r3, r0, r3
+ 379 019c 1360     		str	r3, [r2]
+ 380 019e 01E0     		b	.L39
+ 381              	.LVL30:
+ 382              	.L37:
+ 383              		.loc 1 126 0
+ 384 01a0 069B     		ldr	r3, [sp, #24]
+ 385 01a2 1A60     		str	r2, [r3]
+ 386              	.LVL31:
+ 387              	.L39:
+ 388              		.loc 1 129 0
+ 389 01a4 002C     		cmp	r4, #0
+ 390 01a6 01D1     		bne	.L40
+ 391 01a8 0124     		mov	r4, #1
+ 392 01aa 02E0     		b	.L42
+ 393              	.L40:
+ 394              		.loc 1 134 0
+ 395 01ac 102C     		cmp	r4, #16
+ 396 01ae 00D9     		bls	.L42
+ 397 01b0 1024     		mov	r4, #16
+ 398              	.L42:
+ 399 01b2 0025     		mov	r5, #0
+ 400              	.LVL32:
+ 401 01b4 05E0     		b	.L44
+ 402              	.L45:
+ 403              		.loc 1 141 0
+ 404 01b6 0920     		mov	r0, #9
+ 405              	.LVL33:
+ 406 01b8 FFF7FEFF 		bl	readMFRC522
+ 407 01bc 009A     		ldr	r2, [sp]
+ 408 01be A854     		strb	r0, [r5, r2]
+ 409              		.loc 1 139 0
+ 410 01c0 0135     		add	r5, r5, #1
+ 411              	.LVL34:
+ 412              	.L44:
+ 413 01c2 A542     		cmp	r5, r4
+ 414 01c4 F7D1     		bne	.L45
+ 415 01c6 0123     		mov	r3, #1
+ 416 01c8 301C     		mov	r0, r6
+ 417              	.LVL35:
+ 418 01ca 1840     		and	r0, r0, r3
+ 419 01cc 0AE0     		b	.L35
+ 420              	.LVL36:
+ 421              	.L33:
+ 422              		.loc 1 103 0
+ 423 01ce 0D20     		mov	r0, #13
+ 424 01d0 8021     		mov	r1, #128
+ 425 01d2 FFF7FEFF 		bl	clearBitMask
+ 426              		.loc 1 108 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 13
+
+
+ 427 01d6 0620     		mov	r0, #6
+ 428 01d8 FFF7FEFF 		bl	readMFRC522
+ 429 01dc 1B23     		mov	r3, #27
+ 430 01de 1842     		tst	r0, r3
+ 431 01e0 CDD0     		beq	.L36
+ 432              	.L49:
+ 433 01e2 0220     		mov	r0, #2
+ 434              	.LVL37:
+ 435              	.LVL38:
+ 436              	.L35:
+ 437              		.loc 1 152 0
+ 438 01e4 01B0     		add	sp, sp, #4
+ 439              	.LVL39:
+ 440              		@ sp needed for prologue
+ 441              	.LVL40:
+ 442              	.LVL41:
+ 443              	.LVL42:
+ 444              	.LVL43:
+ 445 01e6 F0BC     		pop	{r4, r5, r6, r7}
+ 446 01e8 02BC     		pop	{r1}
+ 447 01ea 0847     		bx	r1
+ 448              	.L51:
+ 449              		.align	2
+ 450              	.L50:
+ 451 01ec CF070000 		.word	1999
+ 452              	.LFE8:
+ 453              		.size	MFRC522ToCard, .-MFRC522ToCard
+ 454              		.align	2
+ 455              		.global	anticoll
+ 456              		.code 16
+ 457              		.thumb_func
+ 458              		.type	anticoll, %function
+ 459              	anticoll:
+ 460              	.LFB10:
+ 461              		.loc 1 178 0
+ 462 01f0 10B5     		push	{r4, lr}
+ 463              	.LCFI9:
+ 464              	.LVL44:
+ 465 01f2 041C     		mov	r4, r0
+ 466 01f4 82B0     		sub	sp, sp, #8
+ 467              	.LCFI10:
+ 468              		.loc 1 183 0
+ 469 01f6 0D20     		mov	r0, #13
+ 470              	.LVL45:
+ 471 01f8 0021     		mov	r1, #0
+ 472 01fa FFF7FEFF 		bl	writeMFRC522
+ 473              		.loc 1 185 0
+ 474 01fe 6D23     		mov	r3, #109
+ 475 0200 5B42     		neg	r3, r3
+ 476 0202 2370     		strb	r3, [r4]
+ 477              		.loc 1 186 0
+ 478 0204 2023     		mov	r3, #32
+ 479 0206 6370     		strb	r3, [r4, #1]
+ 480              		.loc 1 187 0
+ 481 0208 01AB     		add	r3, sp, #4
+ 482 020a 0093     		str	r3, [sp]
+ 483 020c 0C20     		mov	r0, #12
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 14
+
+
+ 484 020e 211C     		mov	r1, r4
+ 485 0210 0222     		mov	r2, #2
+ 486 0212 231C     		mov	r3, r4
+ 487 0214 FFF7FEFF 		bl	MFRC522ToCard
+ 488              	.LVL46:
+ 489              		.loc 1 189 0
+ 490 0218 0028     		cmp	r0, #0
+ 491 021a 0AD1     		bne	.L53
+ 492              		.loc 1 193 0
+ 493 021c 6278     		ldrb	r2, [r4, #1]
+ 494 021e 2378     		ldrb	r3, [r4]
+ 495 0220 5340     		eor	r3, r3, r2
+ 496              	.LVL47:
+ 497 0222 A278     		ldrb	r2, [r4, #2]
+ 498 0224 5340     		eor	r3, r3, r2
+ 499              	.LVL48:
+ 500              		.loc 1 195 0
+ 501 0226 E278     		ldrb	r2, [r4, #3]
+ 502 0228 2179     		ldrb	r1, [r4, #4]
+ 503 022a 5340     		eor	r3, r3, r2
+ 504              	.LVL49:
+ 505 022c 9942     		cmp	r1, r3
+ 506 022e 00D0     		beq	.L53
+ 507 0230 0220     		mov	r0, #2
+ 508              	.L53:
+ 509              		.loc 1 202 0
+ 510 0232 02B0     		add	sp, sp, #8
+ 511              	.LVL50:
+ 512              		@ sp needed for prologue
+ 513              	.LVL51:
+ 514 0234 10BC     		pop	{r4}
+ 515 0236 02BC     		pop	{r1}
+ 516 0238 0847     		bx	r1
+ 517              	.LFE10:
+ 518              		.size	anticoll, .-anticoll
+ 519 023a 0000     		.align	2
+ 520              		.global	readCardSerial
+ 521              		.code 16
+ 522              		.thumb_func
+ 523              		.type	readCardSerial, %function
+ 524              	readCardSerial:
+ 525              	.LFB12:
+ 526              		.loc 1 223 0
+ 527 023c 10B5     		push	{r4, lr}
+ 528              	.LCFI11:
+ 529 023e 84B0     		sub	sp, sp, #16
+ 530              	.LCFI12:
+ 531              		.loc 1 227 0
+ 532 0240 6846     		mov	r0, sp
+ 533 0242 FFF7FEFF 		bl	anticoll
+ 534              		.loc 1 230 0
+ 535 0246 0B4A     		ldr	r2, .L64
+ 536 0248 0023     		mov	r3, #0
+ 537 024a 0B49     		ldr	r1, .L64+4
+ 538 024c 1370     		strb	r3, [r2]
+ 539              		.loc 1 227 0
+ 540 024e 041C     		mov	r4, r0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 15
+
+
+ 541              	.LVL52:
+ 542              		.loc 1 230 0
+ 543 0250 0022     		mov	r2, #0
+ 544              	.L58:
+ 545              		.loc 1 231 0
+ 546 0252 6B46     		mov	r3, sp
+ 547 0254 D35C     		ldrb	r3, [r2, r3]
+ 548 0256 5354     		strb	r3, [r2, r1]
+ 549 0258 0132     		add	r2, r2, #1
+ 550              		.loc 1 230 0
+ 551 025a 042A     		cmp	r2, #4
+ 552 025c F9D1     		bne	.L58
+ 553 025e 054A     		ldr	r2, .L64
+ 554 0260 0423     		mov	r3, #4
+ 555 0262 1370     		strb	r3, [r2]
+ 556 0264 0020     		mov	r0, #0
+ 557 0266 002C     		cmp	r4, #0
+ 558 0268 00D1     		bne	.L60
+ 559 026a 0120     		mov	r0, #1
+ 560              	.L60:
+ 561              		.loc 1 240 0
+ 562 026c 04B0     		add	sp, sp, #16
+ 563              		@ sp needed for prologue
+ 564              	.LVL53:
+ 565 026e 10BC     		pop	{r4}
+ 566 0270 02BC     		pop	{r1}
+ 567 0272 0847     		bx	r1
+ 568              	.L65:
+ 569              		.align	2
+ 570              	.L64:
+ 571 0274 00000000 		.word	i.1421
+ 572 0278 00000000 		.word	serNum
+ 573              	.LFE12:
+ 574              		.size	readCardSerial, .-readCardSerial
+ 575              		.align	2
+ 576              		.global	MFRC522Request
+ 577              		.code 16
+ 578              		.thumb_func
+ 579              		.type	MFRC522Request, %function
+ 580              	MFRC522Request:
+ 581              	.LFB9:
+ 582              		.loc 1 157 0
+ 583 027c 30B5     		push	{r4, r5, lr}
+ 584              	.LCFI13:
+ 585              	.LVL54:
+ 586 027e 0D1C     		mov	r5, r1
+ 587 0280 82B0     		sub	sp, sp, #8
+ 588              	.LCFI14:
+ 589              		.loc 1 157 0
+ 590 0282 0406     		lsl	r4, r0, #24
+ 591              		.loc 1 161 0
+ 592 0284 0721     		mov	r1, #7
+ 593              	.LVL55:
+ 594 0286 0D20     		mov	r0, #13
+ 595              	.LVL56:
+ 596 0288 FFF7FEFF 		bl	writeMFRC522
+ 597              		.loc 1 157 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 16
+
+
+ 598 028c 240E     		lsr	r4, r4, #24
+ 599              	.LVL57:
+ 600              		.loc 1 165 0
+ 601 028e 01AB     		add	r3, sp, #4
+ 602 0290 0093     		str	r3, [sp]
+ 603              		.loc 1 163 0
+ 604 0292 2C70     		strb	r4, [r5]
+ 605              		.loc 1 165 0
+ 606 0294 0C20     		mov	r0, #12
+ 607 0296 291C     		mov	r1, r5
+ 608 0298 0122     		mov	r2, #1
+ 609 029a 2B1C     		mov	r3, r5
+ 610 029c FFF7FEFF 		bl	MFRC522ToCard
+ 611              	.LVL58:
+ 612              		.loc 1 167 0
+ 613 02a0 0028     		cmp	r0, #0
+ 614 02a2 02D1     		bne	.L67
+ 615              	.LVL59:
+ 616 02a4 019B     		ldr	r3, [sp, #4]
+ 617 02a6 102B     		cmp	r3, #16
+ 618 02a8 00D0     		beq	.L69
+ 619              	.LVL60:
+ 620              	.L67:
+ 621 02aa 0220     		mov	r0, #2
+ 622              	.L69:
+ 623              		.loc 1 173 0
+ 624 02ac 02B0     		add	sp, sp, #8
+ 625              	.LVL61:
+ 626              		@ sp needed for prologue
+ 627              	.LVL62:
+ 628              	.LVL63:
+ 629 02ae 30BC     		pop	{r4, r5}
+ 630 02b0 02BC     		pop	{r1}
+ 631 02b2 0847     		bx	r1
+ 632              	.LFE9:
+ 633              		.size	MFRC522Request, .-MFRC522Request
+ 634              		.align	2
+ 635              		.global	isCard
+ 636              		.code 16
+ 637              		.thumb_func
+ 638              		.type	isCard, %function
+ 639              	isCard:
+ 640              	.LFB11:
+ 641              		.loc 1 207 0
+ 642 02b4 00B5     		push	{lr}
+ 643              	.LCFI15:
+ 644 02b6 84B0     		sub	sp, sp, #16
+ 645              	.LCFI16:
+ 646              		.loc 1 211 0
+ 647 02b8 2620     		mov	r0, #38
+ 648 02ba 6946     		mov	r1, sp
+ 649 02bc FFF7FEFF 		bl	MFRC522Request
+ 650 02c0 0023     		mov	r3, #0
+ 651 02c2 0028     		cmp	r0, #0
+ 652 02c4 00D1     		bne	.L72
+ 653 02c6 0123     		mov	r3, #1
+ 654              	.L72:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 17
+
+
+ 655              		.loc 1 219 0
+ 656 02c8 181C     		mov	r0, r3
+ 657 02ca 04B0     		add	sp, sp, #16
+ 658              		@ sp needed for prologue
+ 659 02cc 02BC     		pop	{r1}
+ 660 02ce 0847     		bx	r1
+ 661              	.LFE11:
+ 662              		.size	isCard, .-isCard
+ 663              		.align	2
+ 664              		.global	antennaOn
+ 665              		.code 16
+ 666              		.thumb_func
+ 667              		.type	antennaOn, %function
+ 668              	antennaOn:
+ 669              	.LFB7:
+ 670              		.loc 1 57 0
+ 671 02d0 00B5     		push	{lr}
+ 672              	.LCFI17:
+ 673              		.loc 1 60 0
+ 674 02d2 1420     		mov	r0, #20
+ 675 02d4 FFF7FEFF 		bl	readMFRC522
+ 676              		.loc 1 61 0
+ 677 02d8 0323     		mov	r3, #3
+ 678 02da 1842     		tst	r0, r3
+ 679 02dc 03D1     		bne	.L77
+ 680              		.loc 1 63 0
+ 681 02de 1420     		mov	r0, #20
+ 682 02e0 0321     		mov	r1, #3
+ 683 02e2 FFF7FEFF 		bl	setBitMask
+ 684              	.L77:
+ 685              		.loc 1 66 0
+ 686              		@ sp needed for prologue
+ 687 02e6 01BC     		pop	{r0}
+ 688 02e8 0047     		bx	r0
+ 689              	.LFE7:
+ 690              		.size	antennaOn, .-antennaOn
+ 691 02ea 0000     		.align	2
+ 692              		.global	initRFID
+ 693              		.code 16
+ 694              		.thumb_func
+ 695              		.type	initRFID, %function
+ 696              	initRFID:
+ 697              	.LFB14:
+ 255:rfid.c        **** 
+ 256:rfid.c        **** 
+ 257:rfid.c        **** void initRFID()
+ 258:rfid.c        **** {
+ 698              		.loc 1 258 0
+ 699 02ec 00B5     		push	{lr}
+ 700              	.LCFI18:
+ 259:rfid.c        ****  
+ 260:rfid.c        ****    reset()
+ 701              		.loc 1 260 0
+ 702 02ee FFF7FEFF 		bl	reset
+ 261:rfid.c        **** 		; // Soft reset MFRC522
+ 262:rfid.c        ****    writeMFRC522(TModeReg, 0x8D)
+ 703              		.loc 1 262 0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 18
+
+
+ 704 02f2 2A20     		mov	r0, #42
+ 705 02f4 8D21     		mov	r1, #141
+ 706 02f6 FFF7FEFF 		bl	writeMFRC522
+ 263:rfid.c        **** 		; // timer starts automatically D - TPreScaler
+ 264:rfid.c        ****    writeMFRC522(TPrescalerReg, 0x3E)
+ 707              		.loc 1 264 0
+ 708 02fa 2B20     		mov	r0, #43
+ 709 02fc 3E21     		mov	r1, #62
+ 710 02fe FFF7FEFF 		bl	writeMFRC522
+ 265:rfid.c        **** 		; // TModeReg[3..0] + TPrescalerReg defines the lower 8 bits of the TPrescaler value
+ 266:rfid.c        ****    writeMFRC522(TReloadRegL, 30);           
+ 711              		.loc 1 266 0
+ 712 0302 2D20     		mov	r0, #45
+ 713 0304 1E21     		mov	r1, #30
+ 714 0306 FFF7FEFF 		bl	writeMFRC522
+ 267:rfid.c        ****    
+ 268:rfid.c        ****    writeMFRC522(TReloadRegH, 0);
+ 715              		.loc 1 268 0
+ 716 030a 2C20     		mov	r0, #44
+ 717 030c 0021     		mov	r1, #0
+ 718 030e FFF7FEFF 		bl	writeMFRC522
+ 269:rfid.c        **** 
+ 270:rfid.c        ****    writeMFRC522(TxAutoReg, 0x40)
+ 719              		.loc 1 270 0
+ 720 0312 1520     		mov	r0, #21
+ 721 0314 4021     		mov	r1, #64
+ 722 0316 FFF7FEFF 		bl	writeMFRC522
+ 271:rfid.c        **** 		;	// 100%ASK
+ 272:rfid.c        ****    writeMFRC522(ModeReg, 0x3D)
+ 723              		.loc 1 272 0
+ 724 031a 1120     		mov	r0, #17
+ 725 031c 3D21     		mov	r1, #61
+ 726 031e FFF7FEFF 		bl	writeMFRC522
+ 273:rfid.c        **** 		;	// CRC valor inicial de 0x6363  (ISO 14443-3)
+ 274:rfid.c        ****    antennaOn()
+ 727              		.loc 1 274 0
+ 728 0322 FFF7FEFF 		bl	antennaOn
+ 275:rfid.c        **** 		; 	// Check and turn on antenna
+ 276:rfid.c        **** }
+ 729              		.loc 1 276 0
+ 730              		@ sp needed for prologue
+ 731 0326 01BC     		pop	{r0}
+ 732 0328 0047     		bx	r0
+ 733              	.LFE14:
+ 734              		.size	initRFID, .-initRFID
+ 735              		.section	.rodata
+ 736              		.type	C.5.1444, %object
+ 737              		.size	C.5.1444, 4
+ 738              	C.5.1444:
+ 739 0000 E7       		.byte	-25
+ 740 0001 92       		.byte	-110
+ 741 0002 DE       		.byte	-34
+ 742 0003 03       		.byte	3
+ 743              		.bss
+ 744              	i.1421:
+ 745 0000 00       		.space	1
+ 746              		.section	.debug_frame,"",%progbits
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 19
+
+
+ 747              	.Lframe0:
+ 748 0000 0C000000 		.4byte	.LECIE0-.LSCIE0
+ 749              	.LSCIE0:
+ 750 0004 FFFFFFFF 		.4byte	0xffffffff
+ 751 0008 01       		.byte	0x1
+ 752 0009 00       		.ascii	"\000"
+ 753 000a 01       		.uleb128 0x1
+ 754 000b 7C       		.sleb128 -4
+ 755 000c 0E       		.byte	0xe
+ 756 000d 0C       		.byte	0xc
+ 757 000e 0D       		.uleb128 0xd
+ 758 000f 00       		.uleb128 0x0
+ 759              		.align	2
+ 760              	.LECIE0:
+ 761              	.LSFDE0:
+ 762 0010 14000000 		.4byte	.LEFDE0-.LASFDE0
+ 763              	.LASFDE0:
+ 764 0014 00000000 		.4byte	.Lframe0
+ 765 0018 00000000 		.4byte	.LFB13
+ 766 001c 40000000 		.4byte	.LFE13-.LFB13
+ 767 0020 42       		.byte	0x4
+ 768              		.4byte	.LCFI0-.LFB13
+ 769 0021 0E       		.byte	0xe
+ 770 0022 04       		.uleb128 0x4
+ 771 0023 8E       		.byte	0x8e
+ 772 0024 01       		.uleb128 0x1
+ 773 0025 42       		.byte	0x4
+ 774              		.4byte	.LCFI1-.LCFI0
+ 775 0026 0E       		.byte	0xe
+ 776 0027 08       		.uleb128 0x8
+ 777              		.align	2
+ 778              	.LEFDE0:
+ 779              	.LSFDE2:
+ 780 0028 18000000 		.4byte	.LEFDE2-.LASFDE2
+ 781              	.LASFDE2:
+ 782 002c 00000000 		.4byte	.Lframe0
+ 783 0030 40000000 		.4byte	.LFB2
+ 784 0034 30000000 		.4byte	.LFE2-.LFB2
+ 785 0038 42       		.byte	0x4
+ 786              		.4byte	.LCFI2-.LFB2
+ 787 0039 0E       		.byte	0xe
+ 788 003a 0C       		.uleb128 0xc
+ 789 003b 84       		.byte	0x84
+ 790 003c 03       		.uleb128 0x3
+ 791 003d 85       		.byte	0x85
+ 792 003e 02       		.uleb128 0x2
+ 793 003f 8E       		.byte	0x8e
+ 794 0040 01       		.uleb128 0x1
+ 795 0041 000000   		.align	2
+ 796              	.LEFDE2:
+ 797              	.LSFDE4:
+ 798 0044 14000000 		.4byte	.LEFDE4-.LASFDE4
+ 799              	.LASFDE4:
+ 800 0048 00000000 		.4byte	.Lframe0
+ 801 004c 70000000 		.4byte	.LFB4
+ 802 0050 0E000000 		.4byte	.LFE4-.LFB4
+ 803 0054 42       		.byte	0x4
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 20
+
+
+ 804              		.4byte	.LCFI3-.LFB4
+ 805 0055 0E       		.byte	0xe
+ 806 0056 04       		.uleb128 0x4
+ 807 0057 8E       		.byte	0x8e
+ 808 0058 01       		.uleb128 0x1
+ 809 0059 000000   		.align	2
+ 810              	.LEFDE4:
+ 811              	.LSFDE6:
+ 812 005c 14000000 		.4byte	.LEFDE6-.LASFDE6
+ 813              	.LASFDE6:
+ 814 0060 00000000 		.4byte	.Lframe0
+ 815 0064 80000000 		.4byte	.LFB3
+ 816 0068 34000000 		.4byte	.LFE3-.LFB3
+ 817 006c 42       		.byte	0x4
+ 818              		.4byte	.LCFI4-.LFB3
+ 819 006d 0E       		.byte	0xe
+ 820 006e 08       		.uleb128 0x8
+ 821 006f 84       		.byte	0x84
+ 822 0070 02       		.uleb128 0x2
+ 823 0071 8E       		.byte	0x8e
+ 824 0072 01       		.uleb128 0x1
+ 825 0073 00       		.align	2
+ 826              	.LEFDE6:
+ 827              	.LSFDE8:
+ 828 0074 18000000 		.4byte	.LEFDE8-.LASFDE8
+ 829              	.LASFDE8:
+ 830 0078 00000000 		.4byte	.Lframe0
+ 831 007c B4000000 		.4byte	.LFB6
+ 832 0080 24000000 		.4byte	.LFE6-.LFB6
+ 833 0084 42       		.byte	0x4
+ 834              		.4byte	.LCFI5-.LFB6
+ 835 0085 0E       		.byte	0xe
+ 836 0086 0C       		.uleb128 0xc
+ 837 0087 84       		.byte	0x84
+ 838 0088 03       		.uleb128 0x3
+ 839 0089 85       		.byte	0x85
+ 840 008a 02       		.uleb128 0x2
+ 841 008b 8E       		.byte	0x8e
+ 842 008c 01       		.uleb128 0x1
+ 843 008d 000000   		.align	2
+ 844              	.LEFDE8:
+ 845              	.LSFDE10:
+ 846 0090 18000000 		.4byte	.LEFDE10-.LASFDE10
+ 847              	.LASFDE10:
+ 848 0094 00000000 		.4byte	.Lframe0
+ 849 0098 D8000000 		.4byte	.LFB5
+ 850 009c 24000000 		.4byte	.LFE5-.LFB5
+ 851 00a0 42       		.byte	0x4
+ 852              		.4byte	.LCFI6-.LFB5
+ 853 00a1 0E       		.byte	0xe
+ 854 00a2 0C       		.uleb128 0xc
+ 855 00a3 84       		.byte	0x84
+ 856 00a4 03       		.uleb128 0x3
+ 857 00a5 85       		.byte	0x85
+ 858 00a6 02       		.uleb128 0x2
+ 859 00a7 8E       		.byte	0x8e
+ 860 00a8 01       		.uleb128 0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 21
+
+
+ 861 00a9 000000   		.align	2
+ 862              	.LEFDE10:
+ 863              	.LSFDE12:
+ 864 00ac 1C000000 		.4byte	.LEFDE12-.LASFDE12
+ 865              	.LASFDE12:
+ 866 00b0 00000000 		.4byte	.Lframe0
+ 867 00b4 FC000000 		.4byte	.LFB8
+ 868 00b8 F4000000 		.4byte	.LFE8-.LFB8
+ 869 00bc 42       		.byte	0x4
+ 870              		.4byte	.LCFI7-.LFB8
+ 871 00bd 0E       		.byte	0xe
+ 872 00be 14       		.uleb128 0x14
+ 873 00bf 84       		.byte	0x84
+ 874 00c0 05       		.uleb128 0x5
+ 875 00c1 85       		.byte	0x85
+ 876 00c2 04       		.uleb128 0x4
+ 877 00c3 86       		.byte	0x86
+ 878 00c4 03       		.uleb128 0x3
+ 879 00c5 87       		.byte	0x87
+ 880 00c6 02       		.uleb128 0x2
+ 881 00c7 8E       		.byte	0x8e
+ 882 00c8 01       		.uleb128 0x1
+ 883 00c9 44       		.byte	0x4
+ 884              		.4byte	.LCFI8-.LCFI7
+ 885 00ca 0E       		.byte	0xe
+ 886 00cb 18       		.uleb128 0x18
+ 887              		.align	2
+ 888              	.LEFDE12:
+ 889              	.LSFDE14:
+ 890 00cc 18000000 		.4byte	.LEFDE14-.LASFDE14
+ 891              	.LASFDE14:
+ 892 00d0 00000000 		.4byte	.Lframe0
+ 893 00d4 F0010000 		.4byte	.LFB10
+ 894 00d8 4A000000 		.4byte	.LFE10-.LFB10
+ 895 00dc 42       		.byte	0x4
+ 896              		.4byte	.LCFI9-.LFB10
+ 897 00dd 0E       		.byte	0xe
+ 898 00de 08       		.uleb128 0x8
+ 899 00df 84       		.byte	0x84
+ 900 00e0 02       		.uleb128 0x2
+ 901 00e1 8E       		.byte	0x8e
+ 902 00e2 01       		.uleb128 0x1
+ 903 00e3 44       		.byte	0x4
+ 904              		.4byte	.LCFI10-.LCFI9
+ 905 00e4 0E       		.byte	0xe
+ 906 00e5 10       		.uleb128 0x10
+ 907 00e6 0000     		.align	2
+ 908              	.LEFDE14:
+ 909              	.LSFDE16:
+ 910 00e8 18000000 		.4byte	.LEFDE16-.LASFDE16
+ 911              	.LASFDE16:
+ 912 00ec 00000000 		.4byte	.Lframe0
+ 913 00f0 3C020000 		.4byte	.LFB12
+ 914 00f4 40000000 		.4byte	.LFE12-.LFB12
+ 915 00f8 42       		.byte	0x4
+ 916              		.4byte	.LCFI11-.LFB12
+ 917 00f9 0E       		.byte	0xe
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 22
+
+
+ 918 00fa 08       		.uleb128 0x8
+ 919 00fb 84       		.byte	0x84
+ 920 00fc 02       		.uleb128 0x2
+ 921 00fd 8E       		.byte	0x8e
+ 922 00fe 01       		.uleb128 0x1
+ 923 00ff 42       		.byte	0x4
+ 924              		.4byte	.LCFI12-.LCFI11
+ 925 0100 0E       		.byte	0xe
+ 926 0101 18       		.uleb128 0x18
+ 927 0102 0000     		.align	2
+ 928              	.LEFDE16:
+ 929              	.LSFDE18:
+ 930 0104 18000000 		.4byte	.LEFDE18-.LASFDE18
+ 931              	.LASFDE18:
+ 932 0108 00000000 		.4byte	.Lframe0
+ 933 010c 7C020000 		.4byte	.LFB9
+ 934 0110 38000000 		.4byte	.LFE9-.LFB9
+ 935 0114 42       		.byte	0x4
+ 936              		.4byte	.LCFI13-.LFB9
+ 937 0115 0E       		.byte	0xe
+ 938 0116 0C       		.uleb128 0xc
+ 939 0117 84       		.byte	0x84
+ 940 0118 03       		.uleb128 0x3
+ 941 0119 85       		.byte	0x85
+ 942 011a 02       		.uleb128 0x2
+ 943 011b 8E       		.byte	0x8e
+ 944 011c 01       		.uleb128 0x1
+ 945 011d 44       		.byte	0x4
+ 946              		.4byte	.LCFI14-.LCFI13
+ 947 011e 0E       		.byte	0xe
+ 948 011f 14       		.uleb128 0x14
+ 949              		.align	2
+ 950              	.LEFDE18:
+ 951              	.LSFDE20:
+ 952 0120 14000000 		.4byte	.LEFDE20-.LASFDE20
+ 953              	.LASFDE20:
+ 954 0124 00000000 		.4byte	.Lframe0
+ 955 0128 B4020000 		.4byte	.LFB11
+ 956 012c 1C000000 		.4byte	.LFE11-.LFB11
+ 957 0130 42       		.byte	0x4
+ 958              		.4byte	.LCFI15-.LFB11
+ 959 0131 0E       		.byte	0xe
+ 960 0132 04       		.uleb128 0x4
+ 961 0133 8E       		.byte	0x8e
+ 962 0134 01       		.uleb128 0x1
+ 963 0135 42       		.byte	0x4
+ 964              		.4byte	.LCFI16-.LCFI15
+ 965 0136 0E       		.byte	0xe
+ 966 0137 14       		.uleb128 0x14
+ 967              		.align	2
+ 968              	.LEFDE20:
+ 969              	.LSFDE22:
+ 970 0138 14000000 		.4byte	.LEFDE22-.LASFDE22
+ 971              	.LASFDE22:
+ 972 013c 00000000 		.4byte	.Lframe0
+ 973 0140 D0020000 		.4byte	.LFB7
+ 974 0144 1A000000 		.4byte	.LFE7-.LFB7
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 23
+
+
+ 975 0148 42       		.byte	0x4
+ 976              		.4byte	.LCFI17-.LFB7
+ 977 0149 0E       		.byte	0xe
+ 978 014a 04       		.uleb128 0x4
+ 979 014b 8E       		.byte	0x8e
+ 980 014c 01       		.uleb128 0x1
+ 981 014d 000000   		.align	2
+ 982              	.LEFDE22:
+ 983              	.LSFDE24:
+ 984 0150 14000000 		.4byte	.LEFDE24-.LASFDE24
+ 985              	.LASFDE24:
+ 986 0154 00000000 		.4byte	.Lframe0
+ 987 0158 EC020000 		.4byte	.LFB14
+ 988 015c 3E000000 		.4byte	.LFE14-.LFB14
+ 989 0160 42       		.byte	0x4
+ 990              		.4byte	.LCFI18-.LFB14
+ 991 0161 0E       		.byte	0xe
+ 992 0162 04       		.uleb128 0x4
+ 993 0163 8E       		.byte	0x8e
+ 994 0164 01       		.uleb128 0x1
+ 995 0165 000000   		.align	2
+ 996              	.LEFDE24:
+ 997              		.file 2 "./startup/general.h"
+ 998              		.file 3 "rfid.h"
+ 999              		.text
+ 1000              	.Letext0:
+ 1001 032a C046     		.section	.debug_loc,"",%progbits
+ 1002              	.Ldebug_loc0:
+ 1003              	.LLST0:
+ 1004 0000 00000000 		.4byte	.LFB13-.Ltext0
+ 1005 0004 02000000 		.4byte	.LCFI0-.Ltext0
+ 1006 0008 0100     		.2byte	0x1
+ 1007 000a 5D       		.byte	0x5d
+ 1008 000b 02000000 		.4byte	.LCFI0-.Ltext0
+ 1009 000f 04000000 		.4byte	.LCFI1-.Ltext0
+ 1010 0013 0200     		.2byte	0x2
+ 1011 0015 7D       		.byte	0x7d
+ 1012 0016 04       		.sleb128 4
+ 1013 0017 04000000 		.4byte	.LCFI1-.Ltext0
+ 1014 001b 40000000 		.4byte	.LFE13-.Ltext0
+ 1015 001f 0200     		.2byte	0x2
+ 1016 0021 7D       		.byte	0x7d
+ 1017 0022 08       		.sleb128 8
+ 1018 0023 00000000 		.4byte	0x0
+ 1019 0027 00000000 		.4byte	0x0
+ 1020              	.LLST1:
+ 1021 002b 40000000 		.4byte	.LFB2-.Ltext0
+ 1022 002f 42000000 		.4byte	.LCFI2-.Ltext0
+ 1023 0033 0100     		.2byte	0x1
+ 1024 0035 5D       		.byte	0x5d
+ 1025 0036 42000000 		.4byte	.LCFI2-.Ltext0
+ 1026 003a 70000000 		.4byte	.LFE2-.Ltext0
+ 1027 003e 0200     		.2byte	0x2
+ 1028 0040 7D       		.byte	0x7d
+ 1029 0041 0C       		.sleb128 12
+ 1030 0042 00000000 		.4byte	0x0
+ 1031 0046 00000000 		.4byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 24
+
+
+ 1032              	.LLST2:
+ 1033 004a 42000000 		.4byte	.LVL0-.Ltext0
+ 1034 004e 4C000000 		.4byte	.LVL1-.Ltext0
+ 1035 0052 0100     		.2byte	0x1
+ 1036 0054 50       		.byte	0x50
+ 1037 0055 00000000 		.4byte	0x0
+ 1038 0059 00000000 		.4byte	0x0
+ 1039              	.LLST3:
+ 1040 005d 42000000 		.4byte	.LVL0-.Ltext0
+ 1041 0061 56000000 		.4byte	.LVL2-.Ltext0
+ 1042 0065 0100     		.2byte	0x1
+ 1043 0067 51       		.byte	0x51
+ 1044 0068 56000000 		.4byte	.LVL2-.Ltext0
+ 1045 006c 60000000 		.4byte	.LVL3-.Ltext0
+ 1046 0070 0100     		.2byte	0x1
+ 1047 0072 54       		.byte	0x54
+ 1048 0073 00000000 		.4byte	0x0
+ 1049 0077 00000000 		.4byte	0x0
+ 1050              	.LLST4:
+ 1051 007b 70000000 		.4byte	.LFB4-.Ltext0
+ 1052 007f 72000000 		.4byte	.LCFI3-.Ltext0
+ 1053 0083 0100     		.2byte	0x1
+ 1054 0085 5D       		.byte	0x5d
+ 1055 0086 72000000 		.4byte	.LCFI3-.Ltext0
+ 1056 008a 7E000000 		.4byte	.LFE4-.Ltext0
+ 1057 008e 0200     		.2byte	0x2
+ 1058 0090 7D       		.byte	0x7d
+ 1059 0091 04       		.sleb128 4
+ 1060 0092 00000000 		.4byte	0x0
+ 1061 0096 00000000 		.4byte	0x0
+ 1062              	.LLST5:
+ 1063 009a 80000000 		.4byte	.LFB3-.Ltext0
+ 1064 009e 82000000 		.4byte	.LCFI4-.Ltext0
+ 1065 00a2 0100     		.2byte	0x1
+ 1066 00a4 5D       		.byte	0x5d
+ 1067 00a5 82000000 		.4byte	.LCFI4-.Ltext0
+ 1068 00a9 B4000000 		.4byte	.LFE3-.Ltext0
+ 1069 00ad 0200     		.2byte	0x2
+ 1070 00af 7D       		.byte	0x7d
+ 1071 00b0 08       		.sleb128 8
+ 1072 00b1 00000000 		.4byte	0x0
+ 1073 00b5 00000000 		.4byte	0x0
+ 1074              	.LLST6:
+ 1075 00b9 82000000 		.4byte	.LVL4-.Ltext0
+ 1076 00bd 8A000000 		.4byte	.LVL5-.Ltext0
+ 1077 00c1 0100     		.2byte	0x1
+ 1078 00c3 50       		.byte	0x50
+ 1079 00c4 00000000 		.4byte	0x0
+ 1080 00c8 00000000 		.4byte	0x0
+ 1081              	.LLST7:
+ 1082 00cc B4000000 		.4byte	.LFB6-.Ltext0
+ 1083 00d0 B6000000 		.4byte	.LCFI5-.Ltext0
+ 1084 00d4 0100     		.2byte	0x1
+ 1085 00d6 5D       		.byte	0x5d
+ 1086 00d7 B6000000 		.4byte	.LCFI5-.Ltext0
+ 1087 00db D8000000 		.4byte	.LFE6-.Ltext0
+ 1088 00df 0200     		.2byte	0x2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 25
+
+
+ 1089 00e1 7D       		.byte	0x7d
+ 1090 00e2 0C       		.sleb128 12
+ 1091 00e3 00000000 		.4byte	0x0
+ 1092 00e7 00000000 		.4byte	0x0
+ 1093              	.LLST8:
+ 1094 00eb B6000000 		.4byte	.LVL6-.Ltext0
+ 1095 00ef BC000000 		.4byte	.LVL7-.Ltext0
+ 1096 00f3 0100     		.2byte	0x1
+ 1097 00f5 50       		.byte	0x50
+ 1098 00f6 BC000000 		.4byte	.LVL7-.Ltext0
+ 1099 00fa D2000000 		.4byte	.LVL11-.Ltext0
+ 1100 00fe 0100     		.2byte	0x1
+ 1101 0100 55       		.byte	0x55
+ 1102 0101 00000000 		.4byte	0x0
+ 1103 0105 00000000 		.4byte	0x0
+ 1104              	.LLST9:
+ 1105 0109 B6000000 		.4byte	.LVL6-.Ltext0
+ 1106 010d C2000000 		.4byte	.LVL8-.Ltext0
+ 1107 0111 0100     		.2byte	0x1
+ 1108 0113 51       		.byte	0x51
+ 1109 0114 C4000000 		.4byte	.LVL9-.Ltext0
+ 1110 0118 D2000000 		.4byte	.LVL10-.Ltext0
+ 1111 011c 0100     		.2byte	0x1
+ 1112 011e 54       		.byte	0x54
+ 1113 011f 00000000 		.4byte	0x0
+ 1114 0123 00000000 		.4byte	0x0
+ 1115              	.LLST10:
+ 1116 0127 D8000000 		.4byte	.LFB5-.Ltext0
+ 1117 012b DA000000 		.4byte	.LCFI6-.Ltext0
+ 1118 012f 0100     		.2byte	0x1
+ 1119 0131 5D       		.byte	0x5d
+ 1120 0132 DA000000 		.4byte	.LCFI6-.Ltext0
+ 1121 0136 FC000000 		.4byte	.LFE5-.Ltext0
+ 1122 013a 0200     		.2byte	0x2
+ 1123 013c 7D       		.byte	0x7d
+ 1124 013d 0C       		.sleb128 12
+ 1125 013e 00000000 		.4byte	0x0
+ 1126 0142 00000000 		.4byte	0x0
+ 1127              	.LLST11:
+ 1128 0146 DA000000 		.4byte	.LVL12-.Ltext0
+ 1129 014a E0000000 		.4byte	.LVL13-.Ltext0
+ 1130 014e 0100     		.2byte	0x1
+ 1131 0150 50       		.byte	0x50
+ 1132 0151 E0000000 		.4byte	.LVL13-.Ltext0
+ 1133 0155 F6000000 		.4byte	.LVL17-.Ltext0
+ 1134 0159 0100     		.2byte	0x1
+ 1135 015b 55       		.byte	0x55
+ 1136 015c 00000000 		.4byte	0x0
+ 1137 0160 00000000 		.4byte	0x0
+ 1138              	.LLST12:
+ 1139 0164 DA000000 		.4byte	.LVL12-.Ltext0
+ 1140 0168 E6000000 		.4byte	.LVL14-.Ltext0
+ 1141 016c 0100     		.2byte	0x1
+ 1142 016e 51       		.byte	0x51
+ 1143 016f E8000000 		.4byte	.LVL15-.Ltext0
+ 1144 0173 F6000000 		.4byte	.LVL16-.Ltext0
+ 1145 0177 0100     		.2byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 26
+
+
+ 1146 0179 54       		.byte	0x54
+ 1147 017a 00000000 		.4byte	0x0
+ 1148 017e 00000000 		.4byte	0x0
+ 1149              	.LLST13:
+ 1150 0182 FC000000 		.4byte	.LFB8-.Ltext0
+ 1151 0186 FE000000 		.4byte	.LCFI7-.Ltext0
+ 1152 018a 0100     		.2byte	0x1
+ 1153 018c 5D       		.byte	0x5d
+ 1154 018d FE000000 		.4byte	.LCFI7-.Ltext0
+ 1155 0191 02010000 		.4byte	.LCFI8-.Ltext0
+ 1156 0195 0200     		.2byte	0x2
+ 1157 0197 7D       		.byte	0x7d
+ 1158 0198 14       		.sleb128 20
+ 1159 0199 02010000 		.4byte	.LCFI8-.Ltext0
+ 1160 019d F0010000 		.4byte	.LFE8-.Ltext0
+ 1161 01a1 0200     		.2byte	0x2
+ 1162 01a3 7D       		.byte	0x7d
+ 1163 01a4 18       		.sleb128 24
+ 1164 01a5 00000000 		.4byte	0x0
+ 1165 01a9 00000000 		.4byte	0x0
+ 1166              	.LLST14:
+ 1167 01ad FE000000 		.4byte	.LVL18-.Ltext0
+ 1168 01b1 00010000 		.4byte	.LVL19-.Ltext0
+ 1169 01b5 0100     		.2byte	0x1
+ 1170 01b7 50       		.byte	0x50
+ 1171 01b8 08010000 		.4byte	.LVL21-.Ltext0
+ 1172 01bc 58010000 		.4byte	.LVL27-.Ltext0
+ 1173 01c0 0100     		.2byte	0x1
+ 1174 01c2 56       		.byte	0x56
+ 1175 01c3 00000000 		.4byte	0x0
+ 1176 01c7 00000000 		.4byte	0x0
+ 1177              	.LLST15:
+ 1178 01cb FE000000 		.4byte	.LVL18-.Ltext0
+ 1179 01cf 0A010000 		.4byte	.LVL22-.Ltext0
+ 1180 01d3 0100     		.2byte	0x1
+ 1181 01d5 51       		.byte	0x51
+ 1182 01d6 0A010000 		.4byte	.LVL22-.Ltext0
+ 1183 01da E6010000 		.4byte	.LVL43-.Ltext0
+ 1184 01de 0100     		.2byte	0x1
+ 1185 01e0 57       		.byte	0x57
+ 1186 01e1 00000000 		.4byte	0x0
+ 1187 01e5 00000000 		.4byte	0x0
+ 1188              	.LLST16:
+ 1189 01e9 FE000000 		.4byte	.LVL18-.Ltext0
+ 1190 01ed 04010000 		.4byte	.LVL20-.Ltext0
+ 1191 01f1 0100     		.2byte	0x1
+ 1192 01f3 52       		.byte	0x52
+ 1193 01f4 10010000 		.4byte	.LVL23-.Ltext0
+ 1194 01f8 B4010000 		.4byte	.LVL32-.Ltext0
+ 1195 01fc 0100     		.2byte	0x1
+ 1196 01fe 55       		.byte	0x55
+ 1197 01ff CE010000 		.4byte	.LVL36-.Ltext0
+ 1198 0203 E6010000 		.4byte	.LVL41-.Ltext0
+ 1199 0207 0100     		.2byte	0x1
+ 1200 0209 55       		.byte	0x55
+ 1201 020a 00000000 		.4byte	0x0
+ 1202 020e 00000000 		.4byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 27
+
+
+ 1203              	.LLST17:
+ 1204 0212 FE000000 		.4byte	.LVL18-.Ltext0
+ 1205 0216 14010000 		.4byte	.LVL24-.Ltext0
+ 1206 021a 0100     		.2byte	0x1
+ 1207 021c 53       		.byte	0x53
+ 1208 021d 14010000 		.4byte	.LVL24-.Ltext0
+ 1209 0221 F0010000 		.4byte	.LFE8-.Ltext0
+ 1210 0225 0200     		.2byte	0x2
+ 1211 0227 91       		.byte	0x91
+ 1212 0228 7C       		.sleb128 -4
+ 1213 0229 00000000 		.4byte	0x0
+ 1214 022d 00000000 		.4byte	0x0
+ 1215              	.LLST18:
+ 1216 0231 FE000000 		.4byte	.LVL18-.Ltext0
+ 1217 0235 A4010000 		.4byte	.LVL31-.Ltext0
+ 1218 0239 0200     		.2byte	0x2
+ 1219 023b 91       		.byte	0x91
+ 1220 023c 00       		.sleb128 0
+ 1221 023d A4010000 		.4byte	.LVL31-.Ltext0
+ 1222 0241 CE010000 		.4byte	.LVL36-.Ltext0
+ 1223 0245 0200     		.2byte	0x2
+ 1224 0247 91       		.byte	0x91
+ 1225 0248 14       		.sleb128 20
+ 1226 0249 CE010000 		.4byte	.LVL36-.Ltext0
+ 1227 024d F0010000 		.4byte	.LFE8-.Ltext0
+ 1228 0251 0200     		.2byte	0x2
+ 1229 0253 91       		.byte	0x91
+ 1230 0254 00       		.sleb128 0
+ 1231 0255 00000000 		.4byte	0x0
+ 1232 0259 00000000 		.4byte	0x0
+ 1233              	.LLST19:
+ 1234 025d CA010000 		.4byte	.LVL35-.Ltext0
+ 1235 0261 CE010000 		.4byte	.LVL36-.Ltext0
+ 1236 0265 0100     		.2byte	0x1
+ 1237 0267 50       		.byte	0x50
+ 1238 0268 E4010000 		.4byte	.LVL37-.Ltext0
+ 1239 026c E6010000 		.4byte	.LVL39-.Ltext0
+ 1240 0270 0100     		.2byte	0x1
+ 1241 0272 50       		.byte	0x50
+ 1242 0273 00000000 		.4byte	0x0
+ 1243 0277 00000000 		.4byte	0x0
+ 1244              	.LLST20:
+ 1245 027b 94010000 		.4byte	.LVL29-.Ltext0
+ 1246 027f B8010000 		.4byte	.LVL33-.Ltext0
+ 1247 0283 0100     		.2byte	0x1
+ 1248 0285 50       		.byte	0x50
+ 1249 0286 C2010000 		.4byte	.LVL34-.Ltext0
+ 1250 028a CA010000 		.4byte	.LVL35-.Ltext0
+ 1251 028e 0100     		.2byte	0x1
+ 1252 0290 50       		.byte	0x50
+ 1253 0291 00000000 		.4byte	0x0
+ 1254 0295 00000000 		.4byte	0x0
+ 1255              	.LLST21:
+ 1256 0299 58010000 		.4byte	.LVL27-.Ltext0
+ 1257 029d 86010000 		.4byte	.LVL28-.Ltext0
+ 1258 02a1 0100     		.2byte	0x1
+ 1259 02a3 56       		.byte	0x56
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 28
+
+
+ 1260 02a4 86010000 		.4byte	.LVL28-.Ltext0
+ 1261 02a8 CE010000 		.4byte	.LVL36-.Ltext0
+ 1262 02ac 0100     		.2byte	0x1
+ 1263 02ae 54       		.byte	0x54
+ 1264 02af E4010000 		.4byte	.LVL38-.Ltext0
+ 1265 02b3 E6010000 		.4byte	.LVL40-.Ltext0
+ 1266 02b7 0100     		.2byte	0x1
+ 1267 02b9 54       		.byte	0x54
+ 1268 02ba 00000000 		.4byte	0x0
+ 1269 02be 00000000 		.4byte	0x0
+ 1270              	.LLST22:
+ 1271 02c2 2E010000 		.4byte	.LVL25-.Ltext0
+ 1272 02c6 56010000 		.4byte	.LVL26-.Ltext0
+ 1273 02ca 0100     		.2byte	0x1
+ 1274 02cc 54       		.byte	0x54
+ 1275 02cd B4010000 		.4byte	.LVL32-.Ltext0
+ 1276 02d1 CE010000 		.4byte	.LVL36-.Ltext0
+ 1277 02d5 0100     		.2byte	0x1
+ 1278 02d7 55       		.byte	0x55
+ 1279 02d8 CE010000 		.4byte	.LVL36-.Ltext0
+ 1280 02dc E4010000 		.4byte	.LVL38-.Ltext0
+ 1281 02e0 0100     		.2byte	0x1
+ 1282 02e2 54       		.byte	0x54
+ 1283 02e3 E4010000 		.4byte	.LVL38-.Ltext0
+ 1284 02e7 E6010000 		.4byte	.LVL40-.Ltext0
+ 1285 02eb 0100     		.2byte	0x1
+ 1286 02ed 55       		.byte	0x55
+ 1287 02ee 00000000 		.4byte	0x0
+ 1288 02f2 00000000 		.4byte	0x0
+ 1289              	.LLST23:
+ 1290 02f6 F0010000 		.4byte	.LFB10-.Ltext0
+ 1291 02fa F2010000 		.4byte	.LCFI9-.Ltext0
+ 1292 02fe 0100     		.2byte	0x1
+ 1293 0300 5D       		.byte	0x5d
+ 1294 0301 F2010000 		.4byte	.LCFI9-.Ltext0
+ 1295 0305 F6010000 		.4byte	.LCFI10-.Ltext0
+ 1296 0309 0200     		.2byte	0x2
+ 1297 030b 7D       		.byte	0x7d
+ 1298 030c 08       		.sleb128 8
+ 1299 030d F6010000 		.4byte	.LCFI10-.Ltext0
+ 1300 0311 3A020000 		.4byte	.LFE10-.Ltext0
+ 1301 0315 0200     		.2byte	0x2
+ 1302 0317 7D       		.byte	0x7d
+ 1303 0318 10       		.sleb128 16
+ 1304 0319 00000000 		.4byte	0x0
+ 1305 031d 00000000 		.4byte	0x0
+ 1306              	.LLST24:
+ 1307 0321 F2010000 		.4byte	.LVL44-.Ltext0
+ 1308 0325 F8010000 		.4byte	.LVL45-.Ltext0
+ 1309 0329 0100     		.2byte	0x1
+ 1310 032b 50       		.byte	0x50
+ 1311 032c F8010000 		.4byte	.LVL45-.Ltext0
+ 1312 0330 34020000 		.4byte	.LVL51-.Ltext0
+ 1313 0334 0100     		.2byte	0x1
+ 1314 0336 54       		.byte	0x54
+ 1315 0337 00000000 		.4byte	0x0
+ 1316 033b 00000000 		.4byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 29
+
+
+ 1317              	.LLST25:
+ 1318 033f 18020000 		.4byte	.LVL46-.Ltext0
+ 1319 0343 34020000 		.4byte	.LVL50-.Ltext0
+ 1320 0347 0100     		.2byte	0x1
+ 1321 0349 50       		.byte	0x50
+ 1322 034a 00000000 		.4byte	0x0
+ 1323 034e 00000000 		.4byte	0x0
+ 1324              	.LLST26:
+ 1325 0352 22020000 		.4byte	.LVL47-.Ltext0
+ 1326 0356 26020000 		.4byte	.LVL48-.Ltext0
+ 1327 035a 0100     		.2byte	0x1
+ 1328 035c 53       		.byte	0x53
+ 1329 035d 00000000 		.4byte	0x0
+ 1330 0361 00000000 		.4byte	0x0
+ 1331              	.LLST27:
+ 1332 0365 3C020000 		.4byte	.LFB12-.Ltext0
+ 1333 0369 3E020000 		.4byte	.LCFI11-.Ltext0
+ 1334 036d 0100     		.2byte	0x1
+ 1335 036f 5D       		.byte	0x5d
+ 1336 0370 3E020000 		.4byte	.LCFI11-.Ltext0
+ 1337 0374 40020000 		.4byte	.LCFI12-.Ltext0
+ 1338 0378 0200     		.2byte	0x2
+ 1339 037a 7D       		.byte	0x7d
+ 1340 037b 08       		.sleb128 8
+ 1341 037c 40020000 		.4byte	.LCFI12-.Ltext0
+ 1342 0380 7C020000 		.4byte	.LFE12-.Ltext0
+ 1343 0384 0200     		.2byte	0x2
+ 1344 0386 7D       		.byte	0x7d
+ 1345 0387 18       		.sleb128 24
+ 1346 0388 00000000 		.4byte	0x0
+ 1347 038c 00000000 		.4byte	0x0
+ 1348              	.LLST28:
+ 1349 0390 50020000 		.4byte	.LVL52-.Ltext0
+ 1350 0394 6E020000 		.4byte	.LVL53-.Ltext0
+ 1351 0398 0100     		.2byte	0x1
+ 1352 039a 54       		.byte	0x54
+ 1353 039b 00000000 		.4byte	0x0
+ 1354 039f 00000000 		.4byte	0x0
+ 1355              	.LLST29:
+ 1356 03a3 7C020000 		.4byte	.LFB9-.Ltext0
+ 1357 03a7 7E020000 		.4byte	.LCFI13-.Ltext0
+ 1358 03ab 0100     		.2byte	0x1
+ 1359 03ad 5D       		.byte	0x5d
+ 1360 03ae 7E020000 		.4byte	.LCFI13-.Ltext0
+ 1361 03b2 82020000 		.4byte	.LCFI14-.Ltext0
+ 1362 03b6 0200     		.2byte	0x2
+ 1363 03b8 7D       		.byte	0x7d
+ 1364 03b9 0C       		.sleb128 12
+ 1365 03ba 82020000 		.4byte	.LCFI14-.Ltext0
+ 1366 03be B4020000 		.4byte	.LFE9-.Ltext0
+ 1367 03c2 0200     		.2byte	0x2
+ 1368 03c4 7D       		.byte	0x7d
+ 1369 03c5 14       		.sleb128 20
+ 1370 03c6 00000000 		.4byte	0x0
+ 1371 03ca 00000000 		.4byte	0x0
+ 1372              	.LLST30:
+ 1373 03ce 7E020000 		.4byte	.LVL54-.Ltext0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 30
+
+
+ 1374 03d2 88020000 		.4byte	.LVL56-.Ltext0
+ 1375 03d6 0100     		.2byte	0x1
+ 1376 03d8 50       		.byte	0x50
+ 1377 03d9 8E020000 		.4byte	.LVL57-.Ltext0
+ 1378 03dd AE020000 		.4byte	.LVL62-.Ltext0
+ 1379 03e1 0100     		.2byte	0x1
+ 1380 03e3 54       		.byte	0x54
+ 1381 03e4 00000000 		.4byte	0x0
+ 1382 03e8 00000000 		.4byte	0x0
+ 1383              	.LLST31:
+ 1384 03ec 7E020000 		.4byte	.LVL54-.Ltext0
+ 1385 03f0 86020000 		.4byte	.LVL55-.Ltext0
+ 1386 03f4 0100     		.2byte	0x1
+ 1387 03f6 51       		.byte	0x51
+ 1388 03f7 86020000 		.4byte	.LVL55-.Ltext0
+ 1389 03fb AE020000 		.4byte	.LVL63-.Ltext0
+ 1390 03ff 0100     		.2byte	0x1
+ 1391 0401 55       		.byte	0x55
+ 1392 0402 00000000 		.4byte	0x0
+ 1393 0406 00000000 		.4byte	0x0
+ 1394              	.LLST32:
+ 1395 040a A0020000 		.4byte	.LVL58-.Ltext0
+ 1396 040e AE020000 		.4byte	.LVL61-.Ltext0
+ 1397 0412 0100     		.2byte	0x1
+ 1398 0414 50       		.byte	0x50
+ 1399 0415 00000000 		.4byte	0x0
+ 1400 0419 00000000 		.4byte	0x0
+ 1401              	.LLST33:
+ 1402 041d A4020000 		.4byte	.LVL59-.Ltext0
+ 1403 0421 AA020000 		.4byte	.LVL60-.Ltext0
+ 1404 0425 0200     		.2byte	0x2
+ 1405 0427 91       		.byte	0x91
+ 1406 0428 7C       		.sleb128 -4
+ 1407 0429 AA020000 		.4byte	.LVL60-.Ltext0
+ 1408 042d B4020000 		.4byte	.LFE9-.Ltext0
+ 1409 0431 0100     		.2byte	0x1
+ 1410 0433 53       		.byte	0x53
+ 1411 0434 00000000 		.4byte	0x0
+ 1412 0438 00000000 		.4byte	0x0
+ 1413              	.LLST34:
+ 1414 043c B4020000 		.4byte	.LFB11-.Ltext0
+ 1415 0440 B6020000 		.4byte	.LCFI15-.Ltext0
+ 1416 0444 0100     		.2byte	0x1
+ 1417 0446 5D       		.byte	0x5d
+ 1418 0447 B6020000 		.4byte	.LCFI15-.Ltext0
+ 1419 044b B8020000 		.4byte	.LCFI16-.Ltext0
+ 1420 044f 0200     		.2byte	0x2
+ 1421 0451 7D       		.byte	0x7d
+ 1422 0452 04       		.sleb128 4
+ 1423 0453 B8020000 		.4byte	.LCFI16-.Ltext0
+ 1424 0457 D0020000 		.4byte	.LFE11-.Ltext0
+ 1425 045b 0200     		.2byte	0x2
+ 1426 045d 7D       		.byte	0x7d
+ 1427 045e 14       		.sleb128 20
+ 1428 045f 00000000 		.4byte	0x0
+ 1429 0463 00000000 		.4byte	0x0
+ 1430              	.LLST35:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 31
+
+
+ 1431 0467 D0020000 		.4byte	.LFB7-.Ltext0
+ 1432 046b D2020000 		.4byte	.LCFI17-.Ltext0
+ 1433 046f 0100     		.2byte	0x1
+ 1434 0471 5D       		.byte	0x5d
+ 1435 0472 D2020000 		.4byte	.LCFI17-.Ltext0
+ 1436 0476 EA020000 		.4byte	.LFE7-.Ltext0
+ 1437 047a 0200     		.2byte	0x2
+ 1438 047c 7D       		.byte	0x7d
+ 1439 047d 04       		.sleb128 4
+ 1440 047e 00000000 		.4byte	0x0
+ 1441 0482 00000000 		.4byte	0x0
+ 1442              	.LLST36:
+ 1443 0486 EC020000 		.4byte	.LFB14-.Ltext0
+ 1444 048a EE020000 		.4byte	.LCFI18-.Ltext0
+ 1445 048e 0100     		.2byte	0x1
+ 1446 0490 5D       		.byte	0x5d
+ 1447 0491 EE020000 		.4byte	.LCFI18-.Ltext0
+ 1448 0495 2A030000 		.4byte	.LFE14-.Ltext0
+ 1449 0499 0200     		.2byte	0x2
+ 1450 049b 7D       		.byte	0x7d
+ 1451 049c 04       		.sleb128 4
+ 1452 049d 00000000 		.4byte	0x0
+ 1453 04a1 00000000 		.4byte	0x0
+ 1454              		.section	.debug_info
+ 1455 0000 1B040000 		.4byte	0x41b
+ 1456 0004 0200     		.2byte	0x2
+ 1457 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 1458 000a 04       		.byte	0x4
+ 1459 000b 01       		.uleb128 0x1
+ 1460 000c 00000000 		.4byte	.Ldebug_line0
+ 1461 0010 2A030000 		.4byte	.Letext0
+ 1462 0014 00000000 		.4byte	.Ltext0
+ 1463 0018 55010000 		.4byte	.LASF39
+ 1464 001c 01       		.byte	0x1
+ 1465 001d 00010000 		.4byte	.LASF40
+ 1466 0021 65000000 		.4byte	.LASF41
+ 1467 0025 02       		.uleb128 0x2
+ 1468 0026 74553800 		.ascii	"tU8\000"
+ 1469 002a 02       		.byte	0x2
+ 1470 002b 47       		.byte	0x47
+ 1471 002c 30000000 		.4byte	0x30
+ 1472 0030 03       		.uleb128 0x3
+ 1473 0031 B3000000 		.4byte	.LASF0
+ 1474 0035 01       		.byte	0x1
+ 1475 0036 08       		.byte	0x8
+ 1476 0037 03       		.uleb128 0x3
+ 1477 0038 CA010000 		.4byte	.LASF1
+ 1478 003c 02       		.byte	0x2
+ 1479 003d 07       		.byte	0x7
+ 1480 003e 04       		.uleb128 0x4
+ 1481 003f 6A010000 		.4byte	.LASF2
+ 1482 0043 02       		.byte	0x2
+ 1483 0044 49       		.byte	0x49
+ 1484 0045 49000000 		.4byte	0x49
+ 1485 0049 03       		.uleb128 0x3
+ 1486 004a 21010000 		.4byte	.LASF3
+ 1487 004e 04       		.byte	0x4
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 32
+
+
+ 1488 004f 07       		.byte	0x7
+ 1489 0050 03       		.uleb128 0x3
+ 1490 0051 BE010000 		.4byte	.LASF4
+ 1491 0055 01       		.byte	0x1
+ 1492 0056 06       		.byte	0x6
+ 1493 0057 03       		.uleb128 0x3
+ 1494 0058 F6000000 		.4byte	.LASF5
+ 1495 005c 02       		.byte	0x2
+ 1496 005d 05       		.byte	0x5
+ 1497 005e 05       		.uleb128 0x5
+ 1498 005f 696E7400 		.ascii	"int\000"
+ 1499 0063 04       		.byte	0x4
+ 1500 0064 05       		.byte	0x5
+ 1501 0065 06       		.uleb128 0x6
+ 1502 0066 99000000 		.4byte	0x99
+ 1503 006a 01       		.byte	0x1
+ 1504 006b 8E010000 		.4byte	.LASF8
+ 1505 006f 01       		.byte	0x1
+ 1506 0070 F2       		.byte	0xf2
+ 1507 0071 25000000 		.4byte	0x25
+ 1508 0075 00000000 		.4byte	.LFB13
+ 1509 0079 40000000 		.4byte	.LFE13
+ 1510 007d 00000000 		.4byte	.LLST0
+ 1511 0081 07       		.uleb128 0x7
+ 1512 0082 7D010000 		.4byte	.LASF6
+ 1513 0086 01       		.byte	0x1
+ 1514 0087 F3       		.byte	0xf3
+ 1515 0088 99000000 		.4byte	0x99
+ 1516 008c 02       		.byte	0x2
+ 1517 008d 91       		.byte	0x91
+ 1518 008e 78       		.sleb128 -8
+ 1519 008f 08       		.uleb128 0x8
+ 1520 0090 6900     		.ascii	"i\000"
+ 1521 0092 01       		.byte	0x1
+ 1522 0093 F4       		.byte	0xf4
+ 1523 0094 25000000 		.4byte	0x25
+ 1524 0098 00       		.byte	0x0
+ 1525 0099 09       		.uleb128 0x9
+ 1526 009a A9000000 		.4byte	0xa9
+ 1527 009e 25000000 		.4byte	0x25
+ 1528 00a2 0A       		.uleb128 0xa
+ 1529 00a3 A9000000 		.4byte	0xa9
+ 1530 00a7 03       		.byte	0x3
+ 1531 00a8 00       		.byte	0x0
+ 1532 00a9 03       		.uleb128 0x3
+ 1533 00aa C1000000 		.4byte	.LASF7
+ 1534 00ae 04       		.byte	0x4
+ 1535 00af 07       		.byte	0x7
+ 1536 00b0 0B       		.uleb128 0xb
+ 1537 00b1 E8000000 		.4byte	0xe8
+ 1538 00b5 01       		.byte	0x1
+ 1539 00b6 DD000000 		.4byte	.LASF9
+ 1540 00ba 01       		.byte	0x1
+ 1541 00bb 04       		.byte	0x4
+ 1542 00bc 01       		.byte	0x1
+ 1543 00bd 40000000 		.4byte	.LFB2
+ 1544 00c1 70000000 		.4byte	.LFE2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 33
+
+
+ 1545 00c5 2B000000 		.4byte	.LLST1
+ 1546 00c9 0C       		.uleb128 0xc
+ 1547 00ca D8000000 		.4byte	.LASF10
+ 1548 00ce 01       		.byte	0x1
+ 1549 00cf 03       		.byte	0x3
+ 1550 00d0 25000000 		.4byte	0x25
+ 1551 00d4 4A000000 		.4byte	.LLST2
+ 1552 00d8 0D       		.uleb128 0xd
+ 1553 00d9 76616C00 		.ascii	"val\000"
+ 1554 00dd 01       		.byte	0x1
+ 1555 00de 03       		.byte	0x3
+ 1556 00df 25000000 		.4byte	0x25
+ 1557 00e3 5D000000 		.4byte	.LLST3
+ 1558 00e7 00       		.byte	0x0
+ 1559 00e8 0E       		.uleb128 0xe
+ 1560 00e9 01       		.byte	0x1
+ 1561 00ea 23000000 		.4byte	.LASF37
+ 1562 00ee 01       		.byte	0x1
+ 1563 00ef 20       		.byte	0x20
+ 1564 00f0 70000000 		.4byte	.LFB4
+ 1565 00f4 7E000000 		.4byte	.LFE4
+ 1566 00f8 7B000000 		.4byte	.LLST4
+ 1567 00fc 0F       		.uleb128 0xf
+ 1568 00fd 34010000 		.4byte	0x134
+ 1569 0101 01       		.byte	0x1
+ 1570 0102 59000000 		.4byte	.LASF11
+ 1571 0106 01       		.byte	0x1
+ 1572 0107 11       		.byte	0x11
+ 1573 0108 01       		.byte	0x1
+ 1574 0109 25000000 		.4byte	0x25
+ 1575 010d 80000000 		.4byte	.LFB3
+ 1576 0111 B4000000 		.4byte	.LFE3
+ 1577 0115 9A000000 		.4byte	.LLST5
+ 1578 0119 0C       		.uleb128 0xc
+ 1579 011a D8000000 		.4byte	.LASF10
+ 1580 011e 01       		.byte	0x1
+ 1581 011f 10       		.byte	0x10
+ 1582 0120 25000000 		.4byte	0x25
+ 1583 0124 B9000000 		.4byte	.LLST6
+ 1584 0128 08       		.uleb128 0x8
+ 1585 0129 76616C00 		.ascii	"val\000"
+ 1586 012d 01       		.byte	0x1
+ 1587 012e 12       		.byte	0x12
+ 1588 012f 25000000 		.4byte	0x25
+ 1589 0133 00       		.byte	0x0
+ 1590 0134 0B       		.uleb128 0xb
+ 1591 0135 77010000 		.4byte	0x177
+ 1592 0139 01       		.byte	0x1
+ 1593 013a 39010000 		.4byte	.LASF12
+ 1594 013e 01       		.byte	0x1
+ 1595 013f 30       		.byte	0x30
+ 1596 0140 01       		.byte	0x1
+ 1597 0141 B4000000 		.4byte	.LFB6
+ 1598 0145 D8000000 		.4byte	.LFE6
+ 1599 0149 CC000000 		.4byte	.LLST7
+ 1600 014d 0D       		.uleb128 0xd
+ 1601 014e 72656700 		.ascii	"reg\000"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 34
+
+
+ 1602 0152 01       		.byte	0x1
+ 1603 0153 2F       		.byte	0x2f
+ 1604 0154 25000000 		.4byte	0x25
+ 1605 0158 EB000000 		.4byte	.LLST8
+ 1606 015c 0C       		.uleb128 0xc
+ 1607 015d 6F010000 		.4byte	.LASF13
+ 1608 0161 01       		.byte	0x1
+ 1609 0162 2F       		.byte	0x2f
+ 1610 0163 25000000 		.4byte	0x25
+ 1611 0167 09010000 		.4byte	.LLST9
+ 1612 016b 08       		.uleb128 0x8
+ 1613 016c 746D7000 		.ascii	"tmp\000"
+ 1614 0170 01       		.byte	0x1
+ 1615 0171 31       		.byte	0x31
+ 1616 0172 25000000 		.4byte	0x25
+ 1617 0176 00       		.byte	0x0
+ 1618 0177 0B       		.uleb128 0xb
+ 1619 0178 BA010000 		.4byte	0x1ba
+ 1620 017c 01       		.byte	0x1
+ 1621 017d 2E010000 		.4byte	.LASF14
+ 1622 0181 01       		.byte	0x1
+ 1623 0182 27       		.byte	0x27
+ 1624 0183 01       		.byte	0x1
+ 1625 0184 D8000000 		.4byte	.LFB5
+ 1626 0188 FC000000 		.4byte	.LFE5
+ 1627 018c 27010000 		.4byte	.LLST10
+ 1628 0190 0D       		.uleb128 0xd
+ 1629 0191 72656700 		.ascii	"reg\000"
+ 1630 0195 01       		.byte	0x1
+ 1631 0196 26       		.byte	0x26
+ 1632 0197 25000000 		.4byte	0x25
+ 1633 019b 46010000 		.4byte	.LLST11
+ 1634 019f 0C       		.uleb128 0xc
+ 1635 01a0 6F010000 		.4byte	.LASF13
+ 1636 01a4 01       		.byte	0x1
+ 1637 01a5 26       		.byte	0x26
+ 1638 01a6 25000000 		.4byte	0x25
+ 1639 01aa 64010000 		.4byte	.LLST12
+ 1640 01ae 08       		.uleb128 0x8
+ 1641 01af 746D7000 		.ascii	"tmp\000"
+ 1642 01b3 01       		.byte	0x1
+ 1643 01b4 28       		.byte	0x28
+ 1644 01b5 25000000 		.4byte	0x25
+ 1645 01b9 00       		.byte	0x0
+ 1646 01ba 0F       		.uleb128 0xf
+ 1647 01bb 71020000 		.4byte	0x271
+ 1648 01bf 01       		.byte	0x1
+ 1649 01c0 43000000 		.4byte	.LASF15
+ 1650 01c4 01       		.byte	0x1
+ 1651 01c5 46       		.byte	0x46
+ 1652 01c6 01       		.byte	0x1
+ 1653 01c7 25000000 		.4byte	0x25
+ 1654 01cb FC000000 		.4byte	.LFB8
+ 1655 01cf F0010000 		.4byte	.LFE8
+ 1656 01d3 82010000 		.4byte	.LLST13
+ 1657 01d7 0C       		.uleb128 0xc
+ 1658 01d8 AD010000 		.4byte	.LASF16
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 35
+
+
+ 1659 01dc 01       		.byte	0x1
+ 1660 01dd 45       		.byte	0x45
+ 1661 01de 25000000 		.4byte	0x25
+ 1662 01e2 AD010000 		.4byte	.LLST14
+ 1663 01e6 0C       		.uleb128 0xc
+ 1664 01e7 B5010000 		.4byte	.LASF17
+ 1665 01eb 01       		.byte	0x1
+ 1666 01ec 45       		.byte	0x45
+ 1667 01ed 71020000 		.4byte	0x271
+ 1668 01f1 CB010000 		.4byte	.LLST15
+ 1669 01f5 0C       		.uleb128 0xc
+ 1670 01f6 86010000 		.4byte	.LASF18
+ 1671 01fa 01       		.byte	0x1
+ 1672 01fb 45       		.byte	0x45
+ 1673 01fc 25000000 		.4byte	0x25
+ 1674 0200 E9010000 		.4byte	.LLST16
+ 1675 0204 0C       		.uleb128 0xc
+ 1676 0205 61010000 		.4byte	.LASF19
+ 1677 0209 01       		.byte	0x1
+ 1678 020a 45       		.byte	0x45
+ 1679 020b 71020000 		.4byte	0x271
+ 1680 020f 12020000 		.4byte	.LLST17
+ 1681 0213 0C       		.uleb128 0xc
+ 1682 0214 51000000 		.4byte	.LASF20
+ 1683 0218 01       		.byte	0x1
+ 1684 0219 45       		.byte	0x45
+ 1685 021a 77020000 		.4byte	0x277
+ 1686 021e 31020000 		.4byte	.LLST18
+ 1687 0222 10       		.uleb128 0x10
+ 1688 0223 3C000000 		.4byte	.LASF21
+ 1689 0227 01       		.byte	0x1
+ 1690 0228 47       		.byte	0x47
+ 1691 0229 25000000 		.4byte	0x25
+ 1692 022d 5D020000 		.4byte	.LLST19
+ 1693 0231 11       		.uleb128 0x11
+ 1694 0232 30000000 		.4byte	.LASF22
+ 1695 0236 01       		.byte	0x1
+ 1696 0237 48       		.byte	0x48
+ 1697 0238 25000000 		.4byte	0x25
+ 1698 023c 11       		.uleb128 0x11
+ 1699 023d 00000000 		.4byte	.LASF23
+ 1700 0241 01       		.byte	0x1
+ 1701 0242 49       		.byte	0x49
+ 1702 0243 25000000 		.4byte	0x25
+ 1703 0247 10       		.uleb128 0x10
+ 1704 0248 74010000 		.4byte	.LASF24
+ 1705 024c 01       		.byte	0x1
+ 1706 024d 4A       		.byte	0x4a
+ 1707 024e 25000000 		.4byte	0x25
+ 1708 0252 7B020000 		.4byte	.LLST20
+ 1709 0256 12       		.uleb128 0x12
+ 1710 0257 6E00     		.ascii	"n\000"
+ 1711 0259 01       		.byte	0x1
+ 1712 025a 4B       		.byte	0x4b
+ 1713 025b 25000000 		.4byte	0x25
+ 1714 025f 99020000 		.4byte	.LLST21
+ 1715 0263 12       		.uleb128 0x12
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 36
+
+
+ 1716 0264 6900     		.ascii	"i\000"
+ 1717 0266 01       		.byte	0x1
+ 1718 0267 4C       		.byte	0x4c
+ 1719 0268 3E000000 		.4byte	0x3e
+ 1720 026c C2020000 		.4byte	.LLST22
+ 1721 0270 00       		.byte	0x0
+ 1722 0271 13       		.uleb128 0x13
+ 1723 0272 04       		.byte	0x4
+ 1724 0273 25000000 		.4byte	0x25
+ 1725 0277 13       		.uleb128 0x13
+ 1726 0278 04       		.byte	0x4
+ 1727 0279 3E000000 		.4byte	0x3e
+ 1728 027d 0F       		.uleb128 0xf
+ 1729 027e DF020000 		.4byte	0x2df
+ 1730 0282 01       		.byte	0x1
+ 1731 0283 07010000 		.4byte	.LASF25
+ 1732 0287 01       		.byte	0x1
+ 1733 0288 B2       		.byte	0xb2
+ 1734 0289 01       		.byte	0x1
+ 1735 028a 25000000 		.4byte	0x25
+ 1736 028e F0010000 		.4byte	.LFB10
+ 1737 0292 3A020000 		.4byte	.LFE10
+ 1738 0296 F6020000 		.4byte	.LLST23
+ 1739 029a 0C       		.uleb128 0xc
+ 1740 029b DD010000 		.4byte	.LASF26
+ 1741 029f 01       		.byte	0x1
+ 1742 02a0 B1       		.byte	0xb1
+ 1743 02a1 71020000 		.4byte	0x271
+ 1744 02a5 21030000 		.4byte	.LLST24
+ 1745 02a9 10       		.uleb128 0x10
+ 1746 02aa 3C000000 		.4byte	.LASF21
+ 1747 02ae 01       		.byte	0x1
+ 1748 02af B3       		.byte	0xb3
+ 1749 02b0 25000000 		.4byte	0x25
+ 1750 02b4 3F030000 		.4byte	.LLST25
+ 1751 02b8 08       		.uleb128 0x8
+ 1752 02b9 6900     		.ascii	"i\000"
+ 1753 02bb 01       		.byte	0x1
+ 1754 02bc B4       		.byte	0xb4
+ 1755 02bd 25000000 		.4byte	0x25
+ 1756 02c1 10       		.uleb128 0x10
+ 1757 02c2 EA000000 		.4byte	.LASF27
+ 1758 02c6 01       		.byte	0x1
+ 1759 02c7 B5       		.byte	0xb5
+ 1760 02c8 25000000 		.4byte	0x25
+ 1761 02cc 52030000 		.4byte	.LLST26
+ 1762 02d0 07       		.uleb128 0x7
+ 1763 02d1 36000000 		.4byte	.LASF28
+ 1764 02d5 01       		.byte	0x1
+ 1765 02d6 B6       		.byte	0xb6
+ 1766 02d7 3E000000 		.4byte	0x3e
+ 1767 02db 02       		.byte	0x2
+ 1768 02dc 91       		.byte	0x91
+ 1769 02dd 74       		.sleb128 -12
+ 1770 02de 00       		.byte	0x0
+ 1771 02df 06       		.uleb128 0x6
+ 1772 02e0 28030000 		.4byte	0x328
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 37
+
+
+ 1773 02e4 01       		.byte	0x1
+ 1774 02e5 9E010000 		.4byte	.LASF29
+ 1775 02e9 01       		.byte	0x1
+ 1776 02ea DF       		.byte	0xdf
+ 1777 02eb 25000000 		.4byte	0x25
+ 1778 02ef 3C020000 		.4byte	.LFB12
+ 1779 02f3 7C020000 		.4byte	.LFE12
+ 1780 02f7 65030000 		.4byte	.LLST27
+ 1781 02fb 10       		.uleb128 0x10
+ 1782 02fc 3C000000 		.4byte	.LASF21
+ 1783 0300 01       		.byte	0x1
+ 1784 0301 E0       		.byte	0xe0
+ 1785 0302 25000000 		.4byte	0x25
+ 1786 0306 90030000 		.4byte	.LLST28
+ 1787 030a 14       		.uleb128 0x14
+ 1788 030b 73747200 		.ascii	"str\000"
+ 1789 030f 01       		.byte	0x1
+ 1790 0310 E1       		.byte	0xe1
+ 1791 0311 28030000 		.4byte	0x328
+ 1792 0315 02       		.byte	0x2
+ 1793 0316 91       		.byte	0x91
+ 1794 0317 68       		.sleb128 -24
+ 1795 0318 14       		.uleb128 0x14
+ 1796 0319 6900     		.ascii	"i\000"
+ 1797 031b 01       		.byte	0x1
+ 1798 031c E5       		.byte	0xe5
+ 1799 031d 25000000 		.4byte	0x25
+ 1800 0321 05       		.byte	0x5
+ 1801 0322 03       		.byte	0x3
+ 1802 0323 00000000 		.4byte	i.1421
+ 1803 0327 00       		.byte	0x0
+ 1804 0328 09       		.uleb128 0x9
+ 1805 0329 38030000 		.4byte	0x338
+ 1806 032d 25000000 		.4byte	0x25
+ 1807 0331 0A       		.uleb128 0xa
+ 1808 0332 A9000000 		.4byte	0xa9
+ 1809 0336 0F       		.byte	0xf
+ 1810 0337 00       		.byte	0x0
+ 1811 0338 0F       		.uleb128 0xf
+ 1812 0339 92030000 		.4byte	0x392
+ 1813 033d 01       		.byte	0x1
+ 1814 033e 46010000 		.4byte	.LASF30
+ 1815 0342 01       		.byte	0x1
+ 1816 0343 9D       		.byte	0x9d
+ 1817 0344 01       		.byte	0x1
+ 1818 0345 25000000 		.4byte	0x25
+ 1819 0349 7C020000 		.4byte	.LFB9
+ 1820 034d B4020000 		.4byte	.LFE9
+ 1821 0351 A3030000 		.4byte	.LLST29
+ 1822 0355 0C       		.uleb128 0xc
+ 1823 0356 12000000 		.4byte	.LASF31
+ 1824 035a 01       		.byte	0x1
+ 1825 035b 9C       		.byte	0x9c
+ 1826 035c 25000000 		.4byte	0x25
+ 1827 0360 CE030000 		.4byte	.LLST30
+ 1828 0364 0C       		.uleb128 0xc
+ 1829 0365 10010000 		.4byte	.LASF32
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 38
+
+
+ 1830 0369 01       		.byte	0x1
+ 1831 036a 9C       		.byte	0x9c
+ 1832 036b 71020000 		.4byte	0x271
+ 1833 036f EC030000 		.4byte	.LLST31
+ 1834 0373 10       		.uleb128 0x10
+ 1835 0374 3C000000 		.4byte	.LASF21
+ 1836 0378 01       		.byte	0x1
+ 1837 0379 9E       		.byte	0x9e
+ 1838 037a 25000000 		.4byte	0x25
+ 1839 037e 0A040000 		.4byte	.LLST32
+ 1840 0382 10       		.uleb128 0x10
+ 1841 0383 1A000000 		.4byte	.LASF33
+ 1842 0387 01       		.byte	0x1
+ 1843 0388 9F       		.byte	0x9f
+ 1844 0389 3E000000 		.4byte	0x3e
+ 1845 038d 1D040000 		.4byte	.LLST33
+ 1846 0391 00       		.byte	0x0
+ 1847 0392 06       		.uleb128 0x6
+ 1848 0393 C8030000 		.4byte	0x3c8
+ 1849 0397 01       		.byte	0x1
+ 1850 0398 29000000 		.4byte	.LASF34
+ 1851 039c 01       		.byte	0x1
+ 1852 039d CF       		.byte	0xcf
+ 1853 039e 25000000 		.4byte	0x25
+ 1854 03a2 B4020000 		.4byte	.LFB11
+ 1855 03a6 D0020000 		.4byte	.LFE11
+ 1856 03aa 3C040000 		.4byte	.LLST34
+ 1857 03ae 11       		.uleb128 0x11
+ 1858 03af 3C000000 		.4byte	.LASF21
+ 1859 03b3 01       		.byte	0x1
+ 1860 03b4 D0       		.byte	0xd0
+ 1861 03b5 25000000 		.4byte	0x25
+ 1862 03b9 14       		.uleb128 0x14
+ 1863 03ba 73747200 		.ascii	"str\000"
+ 1864 03be 01       		.byte	0x1
+ 1865 03bf D1       		.byte	0xd1
+ 1866 03c0 28030000 		.4byte	0x328
+ 1867 03c4 02       		.byte	0x2
+ 1868 03c5 91       		.byte	0x91
+ 1869 03c6 6C       		.sleb128 -20
+ 1870 03c7 00       		.byte	0x0
+ 1871 03c8 15       		.uleb128 0x15
+ 1872 03c9 EC030000 		.4byte	0x3ec
+ 1873 03cd 01       		.byte	0x1
+ 1874 03ce 08000000 		.4byte	.LASF35
+ 1875 03d2 01       		.byte	0x1
+ 1876 03d3 39       		.byte	0x39
+ 1877 03d4 D0020000 		.4byte	.LFB7
+ 1878 03d8 EA020000 		.4byte	.LFE7
+ 1879 03dc 67040000 		.4byte	.LLST35
+ 1880 03e0 11       		.uleb128 0x11
+ 1881 03e1 D3000000 		.4byte	.LASF36
+ 1882 03e5 01       		.byte	0x1
+ 1883 03e6 3A       		.byte	0x3a
+ 1884 03e7 25000000 		.4byte	0x25
+ 1885 03eb 00       		.byte	0x0
+ 1886 03ec 16       		.uleb128 0x16
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 39
+
+
+ 1887 03ed 01       		.byte	0x1
+ 1888 03ee 18010000 		.4byte	.LASF38
+ 1889 03f2 01       		.byte	0x1
+ 1890 03f3 0201     		.2byte	0x102
+ 1891 03f5 EC020000 		.4byte	.LFB14
+ 1892 03f9 2A030000 		.4byte	.LFE14
+ 1893 03fd 86040000 		.4byte	.LLST36
+ 1894 0401 09       		.uleb128 0x9
+ 1895 0402 11040000 		.4byte	0x411
+ 1896 0406 25000000 		.4byte	0x25
+ 1897 040a 0A       		.uleb128 0xa
+ 1898 040b A9000000 		.4byte	0xa9
+ 1899 040f 04       		.byte	0x4
+ 1900 0410 00       		.byte	0x0
+ 1901 0411 17       		.uleb128 0x17
+ 1902 0412 DD010000 		.4byte	.LASF26
+ 1903 0416 03       		.byte	0x3
+ 1904 0417 06       		.byte	0x6
+ 1905 0418 01040000 		.4byte	0x401
+ 1906 041c 01       		.byte	0x1
+ 1907 041d 01       		.byte	0x1
+ 1908 041e 00       		.byte	0x0
+ 1909              		.section	.debug_abbrev
+ 1910 0000 01       		.uleb128 0x1
+ 1911 0001 11       		.uleb128 0x11
+ 1912 0002 01       		.byte	0x1
+ 1913 0003 10       		.uleb128 0x10
+ 1914 0004 06       		.uleb128 0x6
+ 1915 0005 12       		.uleb128 0x12
+ 1916 0006 01       		.uleb128 0x1
+ 1917 0007 11       		.uleb128 0x11
+ 1918 0008 01       		.uleb128 0x1
+ 1919 0009 25       		.uleb128 0x25
+ 1920 000a 0E       		.uleb128 0xe
+ 1921 000b 13       		.uleb128 0x13
+ 1922 000c 0B       		.uleb128 0xb
+ 1923 000d 03       		.uleb128 0x3
+ 1924 000e 0E       		.uleb128 0xe
+ 1925 000f 1B       		.uleb128 0x1b
+ 1926 0010 0E       		.uleb128 0xe
+ 1927 0011 00       		.byte	0x0
+ 1928 0012 00       		.byte	0x0
+ 1929 0013 02       		.uleb128 0x2
+ 1930 0014 16       		.uleb128 0x16
+ 1931 0015 00       		.byte	0x0
+ 1932 0016 03       		.uleb128 0x3
+ 1933 0017 08       		.uleb128 0x8
+ 1934 0018 3A       		.uleb128 0x3a
+ 1935 0019 0B       		.uleb128 0xb
+ 1936 001a 3B       		.uleb128 0x3b
+ 1937 001b 0B       		.uleb128 0xb
+ 1938 001c 49       		.uleb128 0x49
+ 1939 001d 13       		.uleb128 0x13
+ 1940 001e 00       		.byte	0x0
+ 1941 001f 00       		.byte	0x0
+ 1942 0020 03       		.uleb128 0x3
+ 1943 0021 24       		.uleb128 0x24
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 40
+
+
+ 1944 0022 00       		.byte	0x0
+ 1945 0023 03       		.uleb128 0x3
+ 1946 0024 0E       		.uleb128 0xe
+ 1947 0025 0B       		.uleb128 0xb
+ 1948 0026 0B       		.uleb128 0xb
+ 1949 0027 3E       		.uleb128 0x3e
+ 1950 0028 0B       		.uleb128 0xb
+ 1951 0029 00       		.byte	0x0
+ 1952 002a 00       		.byte	0x0
+ 1953 002b 04       		.uleb128 0x4
+ 1954 002c 16       		.uleb128 0x16
+ 1955 002d 00       		.byte	0x0
+ 1956 002e 03       		.uleb128 0x3
+ 1957 002f 0E       		.uleb128 0xe
+ 1958 0030 3A       		.uleb128 0x3a
+ 1959 0031 0B       		.uleb128 0xb
+ 1960 0032 3B       		.uleb128 0x3b
+ 1961 0033 0B       		.uleb128 0xb
+ 1962 0034 49       		.uleb128 0x49
+ 1963 0035 13       		.uleb128 0x13
+ 1964 0036 00       		.byte	0x0
+ 1965 0037 00       		.byte	0x0
+ 1966 0038 05       		.uleb128 0x5
+ 1967 0039 24       		.uleb128 0x24
+ 1968 003a 00       		.byte	0x0
+ 1969 003b 03       		.uleb128 0x3
+ 1970 003c 08       		.uleb128 0x8
+ 1971 003d 0B       		.uleb128 0xb
+ 1972 003e 0B       		.uleb128 0xb
+ 1973 003f 3E       		.uleb128 0x3e
+ 1974 0040 0B       		.uleb128 0xb
+ 1975 0041 00       		.byte	0x0
+ 1976 0042 00       		.byte	0x0
+ 1977 0043 06       		.uleb128 0x6
+ 1978 0044 2E       		.uleb128 0x2e
+ 1979 0045 01       		.byte	0x1
+ 1980 0046 01       		.uleb128 0x1
+ 1981 0047 13       		.uleb128 0x13
+ 1982 0048 3F       		.uleb128 0x3f
+ 1983 0049 0C       		.uleb128 0xc
+ 1984 004a 03       		.uleb128 0x3
+ 1985 004b 0E       		.uleb128 0xe
+ 1986 004c 3A       		.uleb128 0x3a
+ 1987 004d 0B       		.uleb128 0xb
+ 1988 004e 3B       		.uleb128 0x3b
+ 1989 004f 0B       		.uleb128 0xb
+ 1990 0050 49       		.uleb128 0x49
+ 1991 0051 13       		.uleb128 0x13
+ 1992 0052 11       		.uleb128 0x11
+ 1993 0053 01       		.uleb128 0x1
+ 1994 0054 12       		.uleb128 0x12
+ 1995 0055 01       		.uleb128 0x1
+ 1996 0056 40       		.uleb128 0x40
+ 1997 0057 06       		.uleb128 0x6
+ 1998 0058 00       		.byte	0x0
+ 1999 0059 00       		.byte	0x0
+ 2000 005a 07       		.uleb128 0x7
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 41
+
+
+ 2001 005b 34       		.uleb128 0x34
+ 2002 005c 00       		.byte	0x0
+ 2003 005d 03       		.uleb128 0x3
+ 2004 005e 0E       		.uleb128 0xe
+ 2005 005f 3A       		.uleb128 0x3a
+ 2006 0060 0B       		.uleb128 0xb
+ 2007 0061 3B       		.uleb128 0x3b
+ 2008 0062 0B       		.uleb128 0xb
+ 2009 0063 49       		.uleb128 0x49
+ 2010 0064 13       		.uleb128 0x13
+ 2011 0065 02       		.uleb128 0x2
+ 2012 0066 0A       		.uleb128 0xa
+ 2013 0067 00       		.byte	0x0
+ 2014 0068 00       		.byte	0x0
+ 2015 0069 08       		.uleb128 0x8
+ 2016 006a 34       		.uleb128 0x34
+ 2017 006b 00       		.byte	0x0
+ 2018 006c 03       		.uleb128 0x3
+ 2019 006d 08       		.uleb128 0x8
+ 2020 006e 3A       		.uleb128 0x3a
+ 2021 006f 0B       		.uleb128 0xb
+ 2022 0070 3B       		.uleb128 0x3b
+ 2023 0071 0B       		.uleb128 0xb
+ 2024 0072 49       		.uleb128 0x49
+ 2025 0073 13       		.uleb128 0x13
+ 2026 0074 00       		.byte	0x0
+ 2027 0075 00       		.byte	0x0
+ 2028 0076 09       		.uleb128 0x9
+ 2029 0077 01       		.uleb128 0x1
+ 2030 0078 01       		.byte	0x1
+ 2031 0079 01       		.uleb128 0x1
+ 2032 007a 13       		.uleb128 0x13
+ 2033 007b 49       		.uleb128 0x49
+ 2034 007c 13       		.uleb128 0x13
+ 2035 007d 00       		.byte	0x0
+ 2036 007e 00       		.byte	0x0
+ 2037 007f 0A       		.uleb128 0xa
+ 2038 0080 21       		.uleb128 0x21
+ 2039 0081 00       		.byte	0x0
+ 2040 0082 49       		.uleb128 0x49
+ 2041 0083 13       		.uleb128 0x13
+ 2042 0084 2F       		.uleb128 0x2f
+ 2043 0085 0B       		.uleb128 0xb
+ 2044 0086 00       		.byte	0x0
+ 2045 0087 00       		.byte	0x0
+ 2046 0088 0B       		.uleb128 0xb
+ 2047 0089 2E       		.uleb128 0x2e
+ 2048 008a 01       		.byte	0x1
+ 2049 008b 01       		.uleb128 0x1
+ 2050 008c 13       		.uleb128 0x13
+ 2051 008d 3F       		.uleb128 0x3f
+ 2052 008e 0C       		.uleb128 0xc
+ 2053 008f 03       		.uleb128 0x3
+ 2054 0090 0E       		.uleb128 0xe
+ 2055 0091 3A       		.uleb128 0x3a
+ 2056 0092 0B       		.uleb128 0xb
+ 2057 0093 3B       		.uleb128 0x3b
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 42
+
+
+ 2058 0094 0B       		.uleb128 0xb
+ 2059 0095 27       		.uleb128 0x27
+ 2060 0096 0C       		.uleb128 0xc
+ 2061 0097 11       		.uleb128 0x11
+ 2062 0098 01       		.uleb128 0x1
+ 2063 0099 12       		.uleb128 0x12
+ 2064 009a 01       		.uleb128 0x1
+ 2065 009b 40       		.uleb128 0x40
+ 2066 009c 06       		.uleb128 0x6
+ 2067 009d 00       		.byte	0x0
+ 2068 009e 00       		.byte	0x0
+ 2069 009f 0C       		.uleb128 0xc
+ 2070 00a0 05       		.uleb128 0x5
+ 2071 00a1 00       		.byte	0x0
+ 2072 00a2 03       		.uleb128 0x3
+ 2073 00a3 0E       		.uleb128 0xe
+ 2074 00a4 3A       		.uleb128 0x3a
+ 2075 00a5 0B       		.uleb128 0xb
+ 2076 00a6 3B       		.uleb128 0x3b
+ 2077 00a7 0B       		.uleb128 0xb
+ 2078 00a8 49       		.uleb128 0x49
+ 2079 00a9 13       		.uleb128 0x13
+ 2080 00aa 02       		.uleb128 0x2
+ 2081 00ab 06       		.uleb128 0x6
+ 2082 00ac 00       		.byte	0x0
+ 2083 00ad 00       		.byte	0x0
+ 2084 00ae 0D       		.uleb128 0xd
+ 2085 00af 05       		.uleb128 0x5
+ 2086 00b0 00       		.byte	0x0
+ 2087 00b1 03       		.uleb128 0x3
+ 2088 00b2 08       		.uleb128 0x8
+ 2089 00b3 3A       		.uleb128 0x3a
+ 2090 00b4 0B       		.uleb128 0xb
+ 2091 00b5 3B       		.uleb128 0x3b
+ 2092 00b6 0B       		.uleb128 0xb
+ 2093 00b7 49       		.uleb128 0x49
+ 2094 00b8 13       		.uleb128 0x13
+ 2095 00b9 02       		.uleb128 0x2
+ 2096 00ba 06       		.uleb128 0x6
+ 2097 00bb 00       		.byte	0x0
+ 2098 00bc 00       		.byte	0x0
+ 2099 00bd 0E       		.uleb128 0xe
+ 2100 00be 2E       		.uleb128 0x2e
+ 2101 00bf 00       		.byte	0x0
+ 2102 00c0 3F       		.uleb128 0x3f
+ 2103 00c1 0C       		.uleb128 0xc
+ 2104 00c2 03       		.uleb128 0x3
+ 2105 00c3 0E       		.uleb128 0xe
+ 2106 00c4 3A       		.uleb128 0x3a
+ 2107 00c5 0B       		.uleb128 0xb
+ 2108 00c6 3B       		.uleb128 0x3b
+ 2109 00c7 0B       		.uleb128 0xb
+ 2110 00c8 11       		.uleb128 0x11
+ 2111 00c9 01       		.uleb128 0x1
+ 2112 00ca 12       		.uleb128 0x12
+ 2113 00cb 01       		.uleb128 0x1
+ 2114 00cc 40       		.uleb128 0x40
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 43
+
+
+ 2115 00cd 06       		.uleb128 0x6
+ 2116 00ce 00       		.byte	0x0
+ 2117 00cf 00       		.byte	0x0
+ 2118 00d0 0F       		.uleb128 0xf
+ 2119 00d1 2E       		.uleb128 0x2e
+ 2120 00d2 01       		.byte	0x1
+ 2121 00d3 01       		.uleb128 0x1
+ 2122 00d4 13       		.uleb128 0x13
+ 2123 00d5 3F       		.uleb128 0x3f
+ 2124 00d6 0C       		.uleb128 0xc
+ 2125 00d7 03       		.uleb128 0x3
+ 2126 00d8 0E       		.uleb128 0xe
+ 2127 00d9 3A       		.uleb128 0x3a
+ 2128 00da 0B       		.uleb128 0xb
+ 2129 00db 3B       		.uleb128 0x3b
+ 2130 00dc 0B       		.uleb128 0xb
+ 2131 00dd 27       		.uleb128 0x27
+ 2132 00de 0C       		.uleb128 0xc
+ 2133 00df 49       		.uleb128 0x49
+ 2134 00e0 13       		.uleb128 0x13
+ 2135 00e1 11       		.uleb128 0x11
+ 2136 00e2 01       		.uleb128 0x1
+ 2137 00e3 12       		.uleb128 0x12
+ 2138 00e4 01       		.uleb128 0x1
+ 2139 00e5 40       		.uleb128 0x40
+ 2140 00e6 06       		.uleb128 0x6
+ 2141 00e7 00       		.byte	0x0
+ 2142 00e8 00       		.byte	0x0
+ 2143 00e9 10       		.uleb128 0x10
+ 2144 00ea 34       		.uleb128 0x34
+ 2145 00eb 00       		.byte	0x0
+ 2146 00ec 03       		.uleb128 0x3
+ 2147 00ed 0E       		.uleb128 0xe
+ 2148 00ee 3A       		.uleb128 0x3a
+ 2149 00ef 0B       		.uleb128 0xb
+ 2150 00f0 3B       		.uleb128 0x3b
+ 2151 00f1 0B       		.uleb128 0xb
+ 2152 00f2 49       		.uleb128 0x49
+ 2153 00f3 13       		.uleb128 0x13
+ 2154 00f4 02       		.uleb128 0x2
+ 2155 00f5 06       		.uleb128 0x6
+ 2156 00f6 00       		.byte	0x0
+ 2157 00f7 00       		.byte	0x0
+ 2158 00f8 11       		.uleb128 0x11
+ 2159 00f9 34       		.uleb128 0x34
+ 2160 00fa 00       		.byte	0x0
+ 2161 00fb 03       		.uleb128 0x3
+ 2162 00fc 0E       		.uleb128 0xe
+ 2163 00fd 3A       		.uleb128 0x3a
+ 2164 00fe 0B       		.uleb128 0xb
+ 2165 00ff 3B       		.uleb128 0x3b
+ 2166 0100 0B       		.uleb128 0xb
+ 2167 0101 49       		.uleb128 0x49
+ 2168 0102 13       		.uleb128 0x13
+ 2169 0103 00       		.byte	0x0
+ 2170 0104 00       		.byte	0x0
+ 2171 0105 12       		.uleb128 0x12
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 44
+
+
+ 2172 0106 34       		.uleb128 0x34
+ 2173 0107 00       		.byte	0x0
+ 2174 0108 03       		.uleb128 0x3
+ 2175 0109 08       		.uleb128 0x8
+ 2176 010a 3A       		.uleb128 0x3a
+ 2177 010b 0B       		.uleb128 0xb
+ 2178 010c 3B       		.uleb128 0x3b
+ 2179 010d 0B       		.uleb128 0xb
+ 2180 010e 49       		.uleb128 0x49
+ 2181 010f 13       		.uleb128 0x13
+ 2182 0110 02       		.uleb128 0x2
+ 2183 0111 06       		.uleb128 0x6
+ 2184 0112 00       		.byte	0x0
+ 2185 0113 00       		.byte	0x0
+ 2186 0114 13       		.uleb128 0x13
+ 2187 0115 0F       		.uleb128 0xf
+ 2188 0116 00       		.byte	0x0
+ 2189 0117 0B       		.uleb128 0xb
+ 2190 0118 0B       		.uleb128 0xb
+ 2191 0119 49       		.uleb128 0x49
+ 2192 011a 13       		.uleb128 0x13
+ 2193 011b 00       		.byte	0x0
+ 2194 011c 00       		.byte	0x0
+ 2195 011d 14       		.uleb128 0x14
+ 2196 011e 34       		.uleb128 0x34
+ 2197 011f 00       		.byte	0x0
+ 2198 0120 03       		.uleb128 0x3
+ 2199 0121 08       		.uleb128 0x8
+ 2200 0122 3A       		.uleb128 0x3a
+ 2201 0123 0B       		.uleb128 0xb
+ 2202 0124 3B       		.uleb128 0x3b
+ 2203 0125 0B       		.uleb128 0xb
+ 2204 0126 49       		.uleb128 0x49
+ 2205 0127 13       		.uleb128 0x13
+ 2206 0128 02       		.uleb128 0x2
+ 2207 0129 0A       		.uleb128 0xa
+ 2208 012a 00       		.byte	0x0
+ 2209 012b 00       		.byte	0x0
+ 2210 012c 15       		.uleb128 0x15
+ 2211 012d 2E       		.uleb128 0x2e
+ 2212 012e 01       		.byte	0x1
+ 2213 012f 01       		.uleb128 0x1
+ 2214 0130 13       		.uleb128 0x13
+ 2215 0131 3F       		.uleb128 0x3f
+ 2216 0132 0C       		.uleb128 0xc
+ 2217 0133 03       		.uleb128 0x3
+ 2218 0134 0E       		.uleb128 0xe
+ 2219 0135 3A       		.uleb128 0x3a
+ 2220 0136 0B       		.uleb128 0xb
+ 2221 0137 3B       		.uleb128 0x3b
+ 2222 0138 0B       		.uleb128 0xb
+ 2223 0139 11       		.uleb128 0x11
+ 2224 013a 01       		.uleb128 0x1
+ 2225 013b 12       		.uleb128 0x12
+ 2226 013c 01       		.uleb128 0x1
+ 2227 013d 40       		.uleb128 0x40
+ 2228 013e 06       		.uleb128 0x6
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 45
+
+
+ 2229 013f 00       		.byte	0x0
+ 2230 0140 00       		.byte	0x0
+ 2231 0141 16       		.uleb128 0x16
+ 2232 0142 2E       		.uleb128 0x2e
+ 2233 0143 00       		.byte	0x0
+ 2234 0144 3F       		.uleb128 0x3f
+ 2235 0145 0C       		.uleb128 0xc
+ 2236 0146 03       		.uleb128 0x3
+ 2237 0147 0E       		.uleb128 0xe
+ 2238 0148 3A       		.uleb128 0x3a
+ 2239 0149 0B       		.uleb128 0xb
+ 2240 014a 3B       		.uleb128 0x3b
+ 2241 014b 05       		.uleb128 0x5
+ 2242 014c 11       		.uleb128 0x11
+ 2243 014d 01       		.uleb128 0x1
+ 2244 014e 12       		.uleb128 0x12
+ 2245 014f 01       		.uleb128 0x1
+ 2246 0150 40       		.uleb128 0x40
+ 2247 0151 06       		.uleb128 0x6
+ 2248 0152 00       		.byte	0x0
+ 2249 0153 00       		.byte	0x0
+ 2250 0154 17       		.uleb128 0x17
+ 2251 0155 34       		.uleb128 0x34
+ 2252 0156 00       		.byte	0x0
+ 2253 0157 03       		.uleb128 0x3
+ 2254 0158 0E       		.uleb128 0xe
+ 2255 0159 3A       		.uleb128 0x3a
+ 2256 015a 0B       		.uleb128 0xb
+ 2257 015b 3B       		.uleb128 0x3b
+ 2258 015c 0B       		.uleb128 0xb
+ 2259 015d 49       		.uleb128 0x49
+ 2260 015e 13       		.uleb128 0x13
+ 2261 015f 3F       		.uleb128 0x3f
+ 2262 0160 0C       		.uleb128 0xc
+ 2263 0161 3C       		.uleb128 0x3c
+ 2264 0162 0C       		.uleb128 0xc
+ 2265 0163 00       		.byte	0x0
+ 2266 0164 00       		.byte	0x0
+ 2267 0165 00       		.byte	0x0
+ 2268              		.section	.debug_pubnames,"",%progbits
+ 2269 0000 D8000000 		.4byte	0xd8
+ 2270 0004 0200     		.2byte	0x2
+ 2271 0006 00000000 		.4byte	.Ldebug_info0
+ 2272 000a 1F040000 		.4byte	0x41f
+ 2273 000e 65000000 		.4byte	0x65
+ 2274 0012 63686563 		.ascii	"checkIfValidTag\000"
+ 2274      6B496656 
+ 2274      616C6964 
+ 2274      54616700 
+ 2275 0022 B0000000 		.4byte	0xb0
+ 2276 0026 77726974 		.ascii	"writeMFRC522\000"
+ 2276      654D4652 
+ 2276      43353232 
+ 2276      00
+ 2277 0033 E8000000 		.4byte	0xe8
+ 2278 0037 72657365 		.ascii	"reset\000"
+ 2278      7400
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 46
+
+
+ 2279 003d FC000000 		.4byte	0xfc
+ 2280 0041 72656164 		.ascii	"readMFRC522\000"
+ 2280      4D465243 
+ 2280      35323200 
+ 2281 004d 34010000 		.4byte	0x134
+ 2282 0051 636C6561 		.ascii	"clearBitMask\000"
+ 2282      72426974 
+ 2282      4D61736B 
+ 2282      00
+ 2283 005e 77010000 		.4byte	0x177
+ 2284 0062 73657442 		.ascii	"setBitMask\000"
+ 2284      69744D61 
+ 2284      736B00
+ 2285 006d BA010000 		.4byte	0x1ba
+ 2286 0071 4D465243 		.ascii	"MFRC522ToCard\000"
+ 2286      35323254 
+ 2286      6F436172 
+ 2286      6400
+ 2287 007f 7D020000 		.4byte	0x27d
+ 2288 0083 616E7469 		.ascii	"anticoll\000"
+ 2288      636F6C6C 
+ 2288      00
+ 2289 008c DF020000 		.4byte	0x2df
+ 2290 0090 72656164 		.ascii	"readCardSerial\000"
+ 2290      43617264 
+ 2290      53657269 
+ 2290      616C00
+ 2291 009f 38030000 		.4byte	0x338
+ 2292 00a3 4D465243 		.ascii	"MFRC522Request\000"
+ 2292      35323252 
+ 2292      65717565 
+ 2292      737400
+ 2293 00b2 92030000 		.4byte	0x392
+ 2294 00b6 69734361 		.ascii	"isCard\000"
+ 2294      726400
+ 2295 00bd C8030000 		.4byte	0x3c8
+ 2296 00c1 616E7465 		.ascii	"antennaOn\000"
+ 2296      6E6E614F 
+ 2296      6E00
+ 2297 00cb EC030000 		.4byte	0x3ec
+ 2298 00cf 696E6974 		.ascii	"initRFID\000"
+ 2298      52464944 
+ 2298      00
+ 2299 00d8 00000000 		.4byte	0x0
+ 2300              		.section	.debug_aranges,"",%progbits
+ 2301 0000 1C000000 		.4byte	0x1c
+ 2302 0004 0200     		.2byte	0x2
+ 2303 0006 00000000 		.4byte	.Ldebug_info0
+ 2304 000a 04       		.byte	0x4
+ 2305 000b 00       		.byte	0x0
+ 2306 000c 0000     		.2byte	0x0
+ 2307 000e 0000     		.2byte	0x0
+ 2308 0010 00000000 		.4byte	.Ltext0
+ 2309 0014 2A030000 		.4byte	.Letext0-.Ltext0
+ 2310 0018 00000000 		.4byte	0x0
+ 2311 001c 00000000 		.4byte	0x0
+ 2312              		.section	.debug_str,"MS",%progbits,1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 47
+
+
+ 2313              	.LASF23:
+ 2314 0000 77616974 		.ascii	"waitIRq\000"
+ 2314      49527100 
+ 2315              	.LASF35:
+ 2316 0008 616E7465 		.ascii	"antennaOn\000"
+ 2316      6E6E614F 
+ 2316      6E00
+ 2317              	.LASF31:
+ 2318 0012 7265714D 		.ascii	"reqMode\000"
+ 2318      6F646500 
+ 2319              	.LASF33:
+ 2320 001a 6261636B 		.ascii	"backBits\000"
+ 2320      42697473 
+ 2320      00
+ 2321              	.LASF37:
+ 2322 0023 72657365 		.ascii	"reset\000"
+ 2322      7400
+ 2323              	.LASF34:
+ 2324 0029 69734361 		.ascii	"isCard\000"
+ 2324      726400
+ 2325              	.LASF22:
+ 2326 0030 69727145 		.ascii	"irqEn\000"
+ 2326      6E00
+ 2327              	.LASF28:
+ 2328 0036 756E4C65 		.ascii	"unLen\000"
+ 2328      6E00
+ 2329              	.LASF21:
+ 2330 003c 73746174 		.ascii	"status\000"
+ 2330      757300
+ 2331              	.LASF15:
+ 2332 0043 4D465243 		.ascii	"MFRC522ToCard\000"
+ 2332      35323254 
+ 2332      6F436172 
+ 2332      6400
+ 2333              	.LASF20:
+ 2334 0051 6261636B 		.ascii	"backLen\000"
+ 2334      4C656E00 
+ 2335              	.LASF11:
+ 2336 0059 72656164 		.ascii	"readMFRC522\000"
+ 2336      4D465243 
+ 2336      35323200 
+ 2337              	.LASF41:
+ 2338 0065 2F637967 		.ascii	"/cygdrive/c/Users/embedded/Desktop/MaciekPlakalJakP"
+ 2338      64726976 
+ 2338      652F632F 
+ 2338      55736572 
+ 2338      732F656D 
+ 2339 0098 6F707261 		.ascii	"oprawial/projektZamek/2138\000"
+ 2339      7769616C 
+ 2339      2F70726F 
+ 2339      6A656B74 
+ 2339      5A616D65 
+ 2340              	.LASF0:
+ 2341 00b3 756E7369 		.ascii	"unsigned char\000"
+ 2341      676E6564 
+ 2341      20636861 
+ 2341      7200
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 48
+
+
+ 2342              	.LASF7:
+ 2343 00c1 6C6F6E67 		.ascii	"long unsigned int\000"
+ 2343      20756E73 
+ 2343      69676E65 
+ 2343      6420696E 
+ 2343      7400
+ 2344              	.LASF36:
+ 2345 00d3 74656D70 		.ascii	"temp\000"
+ 2345      00
+ 2346              	.LASF10:
+ 2347 00d8 61646472 		.ascii	"addr\000"
+ 2347      00
+ 2348              	.LASF9:
+ 2349 00dd 77726974 		.ascii	"writeMFRC522\000"
+ 2349      654D4652 
+ 2349      43353232 
+ 2349      00
+ 2350              	.LASF27:
+ 2351 00ea 7365724E 		.ascii	"serNumCheck\000"
+ 2351      756D4368 
+ 2351      65636B00 
+ 2352              	.LASF5:
+ 2353 00f6 73686F72 		.ascii	"short int\000"
+ 2353      7420696E 
+ 2353      7400
+ 2354              	.LASF40:
+ 2355 0100 72666964 		.ascii	"rfid.c\000"
+ 2355      2E6300
+ 2356              	.LASF25:
+ 2357 0107 616E7469 		.ascii	"anticoll\000"
+ 2357      636F6C6C 
+ 2357      00
+ 2358              	.LASF32:
+ 2359 0110 54616754 		.ascii	"TagType\000"
+ 2359      79706500 
+ 2360              	.LASF38:
+ 2361 0118 696E6974 		.ascii	"initRFID\000"
+ 2361      52464944 
+ 2361      00
+ 2362              	.LASF3:
+ 2363 0121 756E7369 		.ascii	"unsigned int\000"
+ 2363      676E6564 
+ 2363      20696E74 
+ 2363      00
+ 2364              	.LASF14:
+ 2365 012e 73657442 		.ascii	"setBitMask\000"
+ 2365      69744D61 
+ 2365      736B00
+ 2366              	.LASF12:
+ 2367 0139 636C6561 		.ascii	"clearBitMask\000"
+ 2367      72426974 
+ 2367      4D61736B 
+ 2367      00
+ 2368              	.LASF30:
+ 2369 0146 4D465243 		.ascii	"MFRC522Request\000"
+ 2369      35323252 
+ 2369      65717565 
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 49
+
+
+ 2369      737400
+ 2370              	.LASF39:
+ 2371 0155 474E5520 		.ascii	"GNU C 4.1.1\000"
+ 2371      4320342E 
+ 2371      312E3100 
+ 2372              	.LASF19:
+ 2373 0161 6261636B 		.ascii	"backData\000"
+ 2373      44617461 
+ 2373      00
+ 2374              	.LASF2:
+ 2375 016a 74553332 		.ascii	"tU32\000"
+ 2375      00
+ 2376              	.LASF13:
+ 2377 016f 6D61736B 		.ascii	"mask\000"
+ 2377      00
+ 2378              	.LASF24:
+ 2379 0174 6C617374 		.ascii	"lastBits\000"
+ 2379      42697473 
+ 2379      00
+ 2380              	.LASF6:
+ 2381 017d 76616C69 		.ascii	"validTag\000"
+ 2381      64546167 
+ 2381      00
+ 2382              	.LASF18:
+ 2383 0186 73656E64 		.ascii	"sendLen\000"
+ 2383      4C656E00 
+ 2384              	.LASF8:
+ 2385 018e 63686563 		.ascii	"checkIfValidTag\000"
+ 2385      6B496656 
+ 2385      616C6964 
+ 2385      54616700 
+ 2386              	.LASF29:
+ 2387 019e 72656164 		.ascii	"readCardSerial\000"
+ 2387      43617264 
+ 2387      53657269 
+ 2387      616C00
+ 2388              	.LASF16:
+ 2389 01ad 636F6D6D 		.ascii	"command\000"
+ 2389      616E6400 
+ 2390              	.LASF17:
+ 2391 01b5 73656E64 		.ascii	"sendData\000"
+ 2391      44617461 
+ 2391      00
+ 2392              	.LASF4:
+ 2393 01be 7369676E 		.ascii	"signed char\000"
+ 2393      65642063 
+ 2393      68617200 
+ 2394              	.LASF1:
+ 2395 01ca 73686F72 		.ascii	"short unsigned int\000"
+ 2395      7420756E 
+ 2395      7369676E 
+ 2395      65642069 
+ 2395      6E7400
+ 2396              	.LASF26:
+ 2397 01dd 7365724E 		.ascii	"serNum\000"
+ 2397      756D00
+ 2398              		.ident	"GCC: (GNU) 4.1.1"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 50
+
+
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s 			page 51
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 rfid.c
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:1      .text:00000000 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:16     .text:00000000 checkIfValidTag
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:61     .text:00000038 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:738    .rodata:00000000 C.5.1444
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:70     .text:00000040 writeMFRC522
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:67     .text:00000040 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:110    .text:00000068 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:119    .text:00000070 reset
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:116    .text:00000070 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:139    .text:00000080 readMFRC522
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:175    .text:000000ac $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:184    .text:000000b4 clearBitMask
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:181    .text:000000b4 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:226    .text:000000d8 setBitMask
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:268    .text:000000fc MFRC522ToCard
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:451    .text:000001ec $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:459    .text:000001f0 anticoll
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:456    .text:000001f0 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:524    .text:0000023c readCardSerial
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:571    .text:00000274 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:744    .bss:00000000 i.1421
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:580    .text:0000027c MFRC522Request
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:577    .text:0000027c $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:639    .text:000002b4 isCard
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:668    .text:000002d0 antennaOn
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccVrBSQv.s:696    .text:000002ec initRFID
+                             .bss:00000000 $d
+
+UNDEFINED SYMBOLS
+memcpy
+serNum
+SPI_Master_Write
+SPI_Master_Read

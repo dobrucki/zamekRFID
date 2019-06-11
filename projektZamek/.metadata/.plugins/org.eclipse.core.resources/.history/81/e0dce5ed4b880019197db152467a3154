@@ -1,0 +1,10 @@
+#ifndef TIMER_H_
+#define TIMER_H_
+
+#include <general.h>
+#include <lpc2xxx.h>
+
+extern void udelay(tU32 delayInUs);
+extern void mdelay(tU32 delayInMs);
+
+#endif

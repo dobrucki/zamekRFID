@@ -1,0 +1,456 @@
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 1
+
+
+   1              		.code	16
+   2              		.file	"buttons.c"
+   3              		.section	.debug_abbrev,"",%progbits
+   4              	.Ldebug_abbrev0:
+   5              		.section	.debug_info,"",%progbits
+   6              	.Ldebug_info0:
+   7              		.section	.debug_line,"",%progbits
+   8              	.Ldebug_line0:
+   9 0000 52000000 		.text
+   9      02003700 
+   9      00000201 
+   9      FB0E0D00 
+   9      01010101 
+  10              	.Ltext0:
+  11              		.align	2
+  12              		.global	checkButton
+  13              		.code 16
+  14              		.thumb_func
+  15              		.type	checkButton, %function
+  16              	checkButton:
+  17              	.LFB2:
+  18              		.file 1 "buttons.c"
+   1:buttons.c     **** #include "buttons.h"
+   2:buttons.c     **** 
+   3:buttons.c     **** tU8 checkButton(tU32 key) {
+  19              		.loc 1 3 0
+  20 0000 30B5     		push	{r4, r5, lr}
+  21              	.LCFI0:
+  22              	.LVL0:
+   4:buttons.c     **** 
+   5:buttons.c     **** 	tU8 wcisnietyKlawisz;
+   6:buttons.c     **** 
+   7:buttons.c     **** 	if ((IOPIN1 & key) == 0) {
+  23              		.loc 1 7 0
+  24 0002 094D     		ldr	r5, .L7
+  25 0004 2B68     		ldr	r3, [r5]
+  26              		.loc 1 3 0
+  27 0006 041C     		mov	r4, r0
+  28              		.loc 1 7 0
+  29 0008 0342     		tst	r3, r0
+  30 000a 01D0     		beq	.L2
+  31 000c 0020     		mov	r0, #0
+  32              	.LVL1:
+  33 000e 07E0     		b	.L4
+  34              	.LVL2:
+  35              	.L2:
+   8:buttons.c     **** 		osSleep(5);
+  36              		.loc 1 8 0
+  37 0010 0520     		mov	r0, #5
+  38              	.LVL3:
+  39 0012 FFF7FEFF 		bl	osSleep
+   9:buttons.c     **** 	if ((IOPIN1 & key) == 0) {
+  40              		.loc 1 9 0
+  41 0016 2B68     		ldr	r3, [r5]
+  42 0018 0020     		mov	r0, #0
+  43 001a 2342     		tst	r3, r4
+  44 001c 00D1     		bne	.L4
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 2
+
+
+  45 001e 0120     		mov	r0, #1
+  46              	.L4:
+  10:buttons.c     **** 		wcisnietyKlawisz = key;
+  11:buttons.c     **** 		return TRUE;
+  12:buttons.c     **** 	} else {
+  13:buttons.c     **** 		wcisnietyKlawisz = 0;
+  14:buttons.c     **** 		return FALSE;
+  15:buttons.c     **** 	}
+  16:buttons.c     **** 	} else {
+  17:buttons.c     **** 		wcisnietyKlawisz = 0;
+  18:buttons.c     **** 		return FALSE;
+  19:buttons.c     **** 	}
+  20:buttons.c     **** }
+  47              		.loc 1 20 0
+  48              		@ sp needed for prologue
+  49              	.LVL4:
+  50 0020 30BC     		pop	{r4, r5}
+  51 0022 02BC     		pop	{r1}
+  52 0024 0847     		bx	r1
+  53              	.L8:
+  54 0026 0000     		.align	2
+  55              	.L7:
+  56 0028 108002E0 		.word	-536707056
+  57              	.LFE2:
+  58              		.size	checkButton, .-checkButton
+  59              		.section	.debug_frame,"",%progbits
+  60              	.Lframe0:
+  61 0000 0C000000 		.4byte	.LECIE0-.LSCIE0
+  62              	.LSCIE0:
+  63 0004 FFFFFFFF 		.4byte	0xffffffff
+  64 0008 01       		.byte	0x1
+  65 0009 00       		.ascii	"\000"
+  66 000a 01       		.uleb128 0x1
+  67 000b 7C       		.sleb128 -4
+  68 000c 0E       		.byte	0xe
+  69 000d 0C       		.byte	0xc
+  70 000e 0D       		.uleb128 0xd
+  71 000f 00       		.uleb128 0x0
+  72              		.align	2
+  73              	.LECIE0:
+  74              	.LSFDE0:
+  75 0010 18000000 		.4byte	.LEFDE0-.LASFDE0
+  76              	.LASFDE0:
+  77 0014 00000000 		.4byte	.Lframe0
+  78 0018 00000000 		.4byte	.LFB2
+  79 001c 2C000000 		.4byte	.LFE2-.LFB2
+  80 0020 42       		.byte	0x4
+  81              		.4byte	.LCFI0-.LFB2
+  82 0021 0E       		.byte	0xe
+  83 0022 0C       		.uleb128 0xc
+  84 0023 84       		.byte	0x84
+  85 0024 03       		.uleb128 0x3
+  86 0025 85       		.byte	0x85
+  87 0026 02       		.uleb128 0x2
+  88 0027 8E       		.byte	0x8e
+  89 0028 01       		.uleb128 0x1
+  90 0029 000000   		.align	2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 3
+
+
+  91              	.LEFDE0:
+  92              		.file 2 "./startup/general.h"
+  93              		.text
+  94              	.Letext0:
+  95              		.section	.debug_loc,"",%progbits
+  96              	.Ldebug_loc0:
+  97              	.LLST0:
+  98 0000 00000000 		.4byte	.LFB2-.Ltext0
+  99 0004 02000000 		.4byte	.LCFI0-.Ltext0
+ 100 0008 0100     		.2byte	0x1
+ 101 000a 5D       		.byte	0x5d
+ 102 000b 02000000 		.4byte	.LCFI0-.Ltext0
+ 103 000f 2C000000 		.4byte	.LFE2-.Ltext0
+ 104 0013 0200     		.2byte	0x2
+ 105 0015 7D       		.byte	0x7d
+ 106 0016 0C       		.sleb128 12
+ 107 0017 00000000 		.4byte	0x0
+ 108 001b 00000000 		.4byte	0x0
+ 109              	.LLST1:
+ 110 001f 02000000 		.4byte	.LVL0-.Ltext0
+ 111 0023 0E000000 		.4byte	.LVL1-.Ltext0
+ 112 0027 0100     		.2byte	0x1
+ 113 0029 50       		.byte	0x50
+ 114 002a 0E000000 		.4byte	.LVL1-.Ltext0
+ 115 002e 10000000 		.4byte	.LVL2-.Ltext0
+ 116 0032 0100     		.2byte	0x1
+ 117 0034 54       		.byte	0x54
+ 118 0035 10000000 		.4byte	.LVL2-.Ltext0
+ 119 0039 12000000 		.4byte	.LVL3-.Ltext0
+ 120 003d 0100     		.2byte	0x1
+ 121 003f 50       		.byte	0x50
+ 122 0040 12000000 		.4byte	.LVL3-.Ltext0
+ 123 0044 20000000 		.4byte	.LVL4-.Ltext0
+ 124 0048 0100     		.2byte	0x1
+ 125 004a 54       		.byte	0x54
+ 126 004b 00000000 		.4byte	0x0
+ 127 004f 00000000 		.4byte	0x0
+ 128              		.section	.debug_info
+ 129 0000 96000000 		.4byte	0x96
+ 130 0004 0200     		.2byte	0x2
+ 131 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 132 000a 04       		.byte	0x4
+ 133 000b 01       		.uleb128 0x1
+ 134 000c 00000000 		.4byte	.Ldebug_line0
+ 135 0010 2C000000 		.4byte	.Letext0
+ 136 0014 00000000 		.4byte	.Ltext0
+ 137 0018 42000000 		.4byte	.LASF6
+ 138 001c 01       		.byte	0x1
+ 139 001d BE000000 		.4byte	.LASF7
+ 140 0021 64000000 		.4byte	.LASF8
+ 141 0025 02       		.uleb128 0x2
+ 142 0026 74553800 		.ascii	"tU8\000"
+ 143 002a 02       		.byte	0x2
+ 144 002b 47       		.byte	0x47
+ 145 002c 30000000 		.4byte	0x30
+ 146 0030 03       		.uleb128 0x3
+ 147 0031 B0000000 		.4byte	.LASF0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 4
+
+
+ 148 0035 01       		.byte	0x1
+ 149 0036 08       		.byte	0x8
+ 150 0037 03       		.uleb128 0x3
+ 151 0038 25000000 		.4byte	.LASF1
+ 152 003c 02       		.byte	0x2
+ 153 003d 07       		.byte	0x7
+ 154 003e 04       		.uleb128 0x4
+ 155 003f 4E000000 		.4byte	.LASF2
+ 156 0043 02       		.byte	0x2
+ 157 0044 49       		.byte	0x49
+ 158 0045 49000000 		.4byte	0x49
+ 159 0049 03       		.uleb128 0x3
+ 160 004a 00000000 		.4byte	.LASF3
+ 161 004e 04       		.byte	0x4
+ 162 004f 07       		.byte	0x7
+ 163 0050 03       		.uleb128 0x3
+ 164 0051 19000000 		.4byte	.LASF4
+ 165 0055 01       		.byte	0x1
+ 166 0056 06       		.byte	0x6
+ 167 0057 03       		.uleb128 0x3
+ 168 0058 38000000 		.4byte	.LASF5
+ 169 005c 02       		.byte	0x2
+ 170 005d 05       		.byte	0x5
+ 171 005e 05       		.uleb128 0x5
+ 172 005f 696E7400 		.ascii	"int\000"
+ 173 0063 04       		.byte	0x4
+ 174 0064 05       		.byte	0x5
+ 175 0065 06       		.uleb128 0x6
+ 176 0066 01       		.byte	0x1
+ 177 0067 0D000000 		.4byte	.LASF9
+ 178 006b 01       		.byte	0x1
+ 179 006c 03       		.byte	0x3
+ 180 006d 01       		.byte	0x1
+ 181 006e 25000000 		.4byte	0x25
+ 182 0072 00000000 		.4byte	.LFB2
+ 183 0076 2C000000 		.4byte	.LFE2
+ 184 007a 00000000 		.4byte	.LLST0
+ 185 007e 07       		.uleb128 0x7
+ 186 007f 6B657900 		.ascii	"key\000"
+ 187 0083 01       		.byte	0x1
+ 188 0084 03       		.byte	0x3
+ 189 0085 3E000000 		.4byte	0x3e
+ 190 0089 1F000000 		.4byte	.LLST1
+ 191 008d 08       		.uleb128 0x8
+ 192 008e 53000000 		.4byte	.LASF10
+ 193 0092 01       		.byte	0x1
+ 194 0093 05       		.byte	0x5
+ 195 0094 25000000 		.4byte	0x25
+ 196 0098 00       		.byte	0x0
+ 197 0099 00       		.byte	0x0
+ 198              		.section	.debug_abbrev
+ 199 0000 01       		.uleb128 0x1
+ 200 0001 11       		.uleb128 0x11
+ 201 0002 01       		.byte	0x1
+ 202 0003 10       		.uleb128 0x10
+ 203 0004 06       		.uleb128 0x6
+ 204 0005 12       		.uleb128 0x12
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 5
+
+
+ 205 0006 01       		.uleb128 0x1
+ 206 0007 11       		.uleb128 0x11
+ 207 0008 01       		.uleb128 0x1
+ 208 0009 25       		.uleb128 0x25
+ 209 000a 0E       		.uleb128 0xe
+ 210 000b 13       		.uleb128 0x13
+ 211 000c 0B       		.uleb128 0xb
+ 212 000d 03       		.uleb128 0x3
+ 213 000e 0E       		.uleb128 0xe
+ 214 000f 1B       		.uleb128 0x1b
+ 215 0010 0E       		.uleb128 0xe
+ 216 0011 00       		.byte	0x0
+ 217 0012 00       		.byte	0x0
+ 218 0013 02       		.uleb128 0x2
+ 219 0014 16       		.uleb128 0x16
+ 220 0015 00       		.byte	0x0
+ 221 0016 03       		.uleb128 0x3
+ 222 0017 08       		.uleb128 0x8
+ 223 0018 3A       		.uleb128 0x3a
+ 224 0019 0B       		.uleb128 0xb
+ 225 001a 3B       		.uleb128 0x3b
+ 226 001b 0B       		.uleb128 0xb
+ 227 001c 49       		.uleb128 0x49
+ 228 001d 13       		.uleb128 0x13
+ 229 001e 00       		.byte	0x0
+ 230 001f 00       		.byte	0x0
+ 231 0020 03       		.uleb128 0x3
+ 232 0021 24       		.uleb128 0x24
+ 233 0022 00       		.byte	0x0
+ 234 0023 03       		.uleb128 0x3
+ 235 0024 0E       		.uleb128 0xe
+ 236 0025 0B       		.uleb128 0xb
+ 237 0026 0B       		.uleb128 0xb
+ 238 0027 3E       		.uleb128 0x3e
+ 239 0028 0B       		.uleb128 0xb
+ 240 0029 00       		.byte	0x0
+ 241 002a 00       		.byte	0x0
+ 242 002b 04       		.uleb128 0x4
+ 243 002c 16       		.uleb128 0x16
+ 244 002d 00       		.byte	0x0
+ 245 002e 03       		.uleb128 0x3
+ 246 002f 0E       		.uleb128 0xe
+ 247 0030 3A       		.uleb128 0x3a
+ 248 0031 0B       		.uleb128 0xb
+ 249 0032 3B       		.uleb128 0x3b
+ 250 0033 0B       		.uleb128 0xb
+ 251 0034 49       		.uleb128 0x49
+ 252 0035 13       		.uleb128 0x13
+ 253 0036 00       		.byte	0x0
+ 254 0037 00       		.byte	0x0
+ 255 0038 05       		.uleb128 0x5
+ 256 0039 24       		.uleb128 0x24
+ 257 003a 00       		.byte	0x0
+ 258 003b 03       		.uleb128 0x3
+ 259 003c 08       		.uleb128 0x8
+ 260 003d 0B       		.uleb128 0xb
+ 261 003e 0B       		.uleb128 0xb
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 6
+
+
+ 262 003f 3E       		.uleb128 0x3e
+ 263 0040 0B       		.uleb128 0xb
+ 264 0041 00       		.byte	0x0
+ 265 0042 00       		.byte	0x0
+ 266 0043 06       		.uleb128 0x6
+ 267 0044 2E       		.uleb128 0x2e
+ 268 0045 01       		.byte	0x1
+ 269 0046 3F       		.uleb128 0x3f
+ 270 0047 0C       		.uleb128 0xc
+ 271 0048 03       		.uleb128 0x3
+ 272 0049 0E       		.uleb128 0xe
+ 273 004a 3A       		.uleb128 0x3a
+ 274 004b 0B       		.uleb128 0xb
+ 275 004c 3B       		.uleb128 0x3b
+ 276 004d 0B       		.uleb128 0xb
+ 277 004e 27       		.uleb128 0x27
+ 278 004f 0C       		.uleb128 0xc
+ 279 0050 49       		.uleb128 0x49
+ 280 0051 13       		.uleb128 0x13
+ 281 0052 11       		.uleb128 0x11
+ 282 0053 01       		.uleb128 0x1
+ 283 0054 12       		.uleb128 0x12
+ 284 0055 01       		.uleb128 0x1
+ 285 0056 40       		.uleb128 0x40
+ 286 0057 06       		.uleb128 0x6
+ 287 0058 00       		.byte	0x0
+ 288 0059 00       		.byte	0x0
+ 289 005a 07       		.uleb128 0x7
+ 290 005b 05       		.uleb128 0x5
+ 291 005c 00       		.byte	0x0
+ 292 005d 03       		.uleb128 0x3
+ 293 005e 08       		.uleb128 0x8
+ 294 005f 3A       		.uleb128 0x3a
+ 295 0060 0B       		.uleb128 0xb
+ 296 0061 3B       		.uleb128 0x3b
+ 297 0062 0B       		.uleb128 0xb
+ 298 0063 49       		.uleb128 0x49
+ 299 0064 13       		.uleb128 0x13
+ 300 0065 02       		.uleb128 0x2
+ 301 0066 06       		.uleb128 0x6
+ 302 0067 00       		.byte	0x0
+ 303 0068 00       		.byte	0x0
+ 304 0069 08       		.uleb128 0x8
+ 305 006a 34       		.uleb128 0x34
+ 306 006b 00       		.byte	0x0
+ 307 006c 03       		.uleb128 0x3
+ 308 006d 0E       		.uleb128 0xe
+ 309 006e 3A       		.uleb128 0x3a
+ 310 006f 0B       		.uleb128 0xb
+ 311 0070 3B       		.uleb128 0x3b
+ 312 0071 0B       		.uleb128 0xb
+ 313 0072 49       		.uleb128 0x49
+ 314 0073 13       		.uleb128 0x13
+ 315 0074 00       		.byte	0x0
+ 316 0075 00       		.byte	0x0
+ 317 0076 00       		.byte	0x0
+ 318              		.section	.debug_pubnames,"",%progbits
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 7
+
+
+ 319 0000 1E000000 		.4byte	0x1e
+ 320 0004 0200     		.2byte	0x2
+ 321 0006 00000000 		.4byte	.Ldebug_info0
+ 322 000a 9A000000 		.4byte	0x9a
+ 323 000e 65000000 		.4byte	0x65
+ 324 0012 63686563 		.ascii	"checkButton\000"
+ 324      6B427574 
+ 324      746F6E00 
+ 325 001e 00000000 		.4byte	0x0
+ 326              		.section	.debug_aranges,"",%progbits
+ 327 0000 1C000000 		.4byte	0x1c
+ 328 0004 0200     		.2byte	0x2
+ 329 0006 00000000 		.4byte	.Ldebug_info0
+ 330 000a 04       		.byte	0x4
+ 331 000b 00       		.byte	0x0
+ 332 000c 0000     		.2byte	0x0
+ 333 000e 0000     		.2byte	0x0
+ 334 0010 00000000 		.4byte	.Ltext0
+ 335 0014 2C000000 		.4byte	.Letext0-.Ltext0
+ 336 0018 00000000 		.4byte	0x0
+ 337 001c 00000000 		.4byte	0x0
+ 338              		.section	.debug_str,"MS",%progbits,1
+ 339              	.LASF3:
+ 340 0000 756E7369 		.ascii	"unsigned int\000"
+ 340      676E6564 
+ 340      20696E74 
+ 340      00
+ 341              	.LASF9:
+ 342 000d 63686563 		.ascii	"checkButton\000"
+ 342      6B427574 
+ 342      746F6E00 
+ 343              	.LASF4:
+ 344 0019 7369676E 		.ascii	"signed char\000"
+ 344      65642063 
+ 344      68617200 
+ 345              	.LASF1:
+ 346 0025 73686F72 		.ascii	"short unsigned int\000"
+ 346      7420756E 
+ 346      7369676E 
+ 346      65642069 
+ 346      6E7400
+ 347              	.LASF5:
+ 348 0038 73686F72 		.ascii	"short int\000"
+ 348      7420696E 
+ 348      7400
+ 349              	.LASF6:
+ 350 0042 474E5520 		.ascii	"GNU C 4.1.1\000"
+ 350      4320342E 
+ 350      312E3100 
+ 351              	.LASF2:
+ 352 004e 74553332 		.ascii	"tU32\000"
+ 352      00
+ 353              	.LASF10:
+ 354 0053 77636973 		.ascii	"wcisnietyKlawisz\000"
+ 354      6E696574 
+ 354      794B6C61 
+ 354      7769737A 
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 8
+
+
+ 354      00
+ 355              	.LASF8:
+ 356 0064 2F637967 		.ascii	"/cygdrive/c/Users/embedded/Desktop/SystemyWbudowane"
+ 356      64726976 
+ 356      652F632F 
+ 356      55736572 
+ 356      732F656D 
+ 357 0097 4B4F4E49 		.ascii	"KONIEC/projektZamek/2138\000"
+ 357      45432F70 
+ 357      726F6A65 
+ 357      6B745A61 
+ 357      6D656B2F 
+ 358              	.LASF0:
+ 359 00b0 756E7369 		.ascii	"unsigned char\000"
+ 359      676E6564 
+ 359      20636861 
+ 359      7200
+ 360              	.LASF7:
+ 361 00be 62757474 		.ascii	"buttons.c\000"
+ 361      6F6E732E 
+ 361      6300
+ 362              		.ident	"GCC: (GNU) 4.1.1"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s 			page 9
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 buttons.c
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s:1      .text:00000000 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s:16     .text:00000000 checkButton
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccvjdp2R.s:56     .text:00000028 $d
+
+UNDEFINED SYMBOLS
+osSleep

@@ -1,0 +1,33 @@
+#include "spi.h"
+
+void SPI_Master_Init()
+{
+	PINSEL0 = PINSEL0 | 0x00001500; /* Select P0.4, P0.5, P0.6, P0.7 as SCK0, MISO0, MOSI0 and GPIO */
+	SPI_SPCR = 0x0020; /* SPI Master mode, 8-bit data, SPI0 mode */
+	SPI_SPCCR = 0x10; /* Even number, minimum value 8, pre scalar for SPI Clock */
+}
+
+void SPI_Master_Write(tU8 data)
+{
+	char flush;
+	IOCLR = (1<<7);  /* SSEL = 0, enable SPI communication with slave */
+	udelay(100);
+	SPI_SPDR = data;  /* Load data to be written into the data register */
+	while ( (SPI_SPSR & 0x80) == 0 )
+		;  /* Wait till data transmission is completed */
+	flush = SPI_SPDR;
+	udelay(100);
+	IOSET = (1<<7);  /* SSEL = 1, disable SPI communication with slave */
+}
+
+tU8 SPI_Master_Read()
+{
+	IOCLR = (1<<7);  /* SSEL = 0, enable SPI communication with slave */
+	udelay(100);
+	SPI_SPDR = 0xFF;  /* Transmit Flush byte */
+	while ( (SPI_SPSR & 0x80) == 0 )
+		;  /* Wait till data transmission is completed */
+	udelay(100);
+	IOSET = (1<<7);  /* SSEL = 1, disable SPI communication with slave */
+	return SPI_SPDR;  /* Return the data received */
+}

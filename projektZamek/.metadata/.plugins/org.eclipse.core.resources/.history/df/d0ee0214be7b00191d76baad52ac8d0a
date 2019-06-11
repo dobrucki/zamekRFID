@@ -1,0 +1,55 @@
+#include "spi.h"
+
+void SPI_Master_Init()
+{
+	PINSEL0 = PINSEL0 | 0x00001500; /* Select P0.4, P0.5, P0.6, P0.7 as SCK0, MISO0, MOSI0 and GPIO */
+	SPI_SPCR = 0x0020; /* SPI Master mode, 8-bit data, SPI0 mode */
+	SPI_SPCCR = 0x08; /* Even number, minimum value 8, pre scalar for SPI Clock */
+	IODIR0 = (1<<7);
+}
+
+// Poprawione SPI
+
+/*void SPI_Master_Init()
+{
+	PINSEL0 = PINSEL0 | 0x00001500; // Select P0.4, P0.5, P0.6, P0.7 as SCK0, MISO0, MOSI0 and GPIO
+	
+	// Set SS to high so a connected chip will be "deselected" by default
+	IO0SET |= (1<<7 ); // Make ouput High for P0.7
+	
+	// When the SS pin is set as OUTPUT, it can be used as
+	// a general purpose output port (it doesn't influence
+	// SPI operations).
+	IO0DIR |= (1<<7); // Config P0.7 as Ouput
+	
+	// Warning: if the SS pin ever becomes a LOW INPUT then SPI
+	// automatically switches to Slave, so the data direction of
+	// the SS pin MUST be kept as OUTPUT.
+	SPI_SPCR = 0x0020; // SPI Master mode, 8-bit data, SPI0 mode
+	SPI_SPCCR = 0x08; // Even number, minimum value 8, pre scalar for SPI Clock (tego nie ma w ARDU) 
+	
+	IODIR |= (1<< 4 | 1 << 6); // Set direction register for SCK and MOSI pin.
+}*/
+
+// To jest niby podobne ale nie jestem w stanie tego zrozumiec
+
+void SPI_Master_Write(tU8 data)
+{
+	char flush;
+	//IOCLR = (1<<7);  /* SSEL = 0, enable SPI communication with slave */
+	SPI_SPDR = data;  /* Load data to be written into the data register */
+	while ( (SPI_SPSR & 0x80) == 0 )
+		;  /* Wait till data transmission is completed */
+	flush = SPI_SPDR;
+	//IOSET = (1<<7);  /* SSEL = 1, disable SPI communication with slave */
+}
+
+tU8 SPI_Master_Read()
+{
+	//IOCLR = (1<<7);  /* SSEL = 0, enable SPI communication with slave */
+	SPI_SPDR = 0xFF;  /* Transmit Flush byte */
+	while ( (SPI_SPSR & 0x80) == 0 )
+		;  /* Wait till data transmission is completed */
+	//IOSET = (1<<7);  /* SSEL = 1, disable SPI communication with slave */
+	return SPI_SPDR;  /* Return the data received */
+}

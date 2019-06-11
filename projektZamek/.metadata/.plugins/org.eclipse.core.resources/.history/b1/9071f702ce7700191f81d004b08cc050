@@ -1,0 +1,9 @@
+#ifndef _SPI_H_
+#define _SPI_H_
+
+void SPI_Master_Init();
+void SPI_Master_Write(tU8 data);
+tU8 SPI_Master_Read();
+
+
+#endif

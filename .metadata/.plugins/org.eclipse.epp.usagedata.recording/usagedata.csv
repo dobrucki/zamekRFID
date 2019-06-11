@@ -1,0 +1,23 @@
+what,kind,bundleId,bundleVersion,description,time
+java.vm.specification.vendor,sysinfo,,,"Sun Microsystems Inc.",1559816129977
+java.vm.specification.version,sysinfo,,,"1.0",1559816129977
+java.vm.vendor,sysinfo,,,"Sun Microsystems Inc.",1559816129977
+java.vm.version,sysinfo,,,"20.2-b06",1559816129977
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1559816137774
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1559816137790
+closed,view,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.internal.introview",1559816137806
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.refresh",1559816140134
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1559816142384
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1559816144571
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1559816156462
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1559816164040
+closed,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1559816164290
+stopped,bundle,org.eclipse.compare.win32,1.0.0.I20090430-0408,"org.eclipse.compare.win32",1559816164509
+stopped,bundle,com.zylin.embeddedcdt,4.11.1,"com.zylin.embeddedcdt",1559816164509
+stopped,bundle,org.eclipse.cdt.debug.mi.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.mi.ui",1559816164509
+stopped,bundle,org.eclipse.cdt.dsf.gdb.ui,2.0.0.200909110608,"org.eclipse.cdt.dsf.gdb.ui",1559816164509
+stopped,bundle,org.eclipse.cdt.dsf.ui,2.0.1.200909110608,"org.eclipse.cdt.dsf.ui",1559816164509
+stopped,bundle,org.eclipse.cdt.launch,6.0.0.200909110608,"org.eclipse.cdt.launch",1559816164509
+stopped,bundle,org.eclipse.cdt.debug.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.ui",1559816164524
+stopped,bundle,org.eclipse.cdt.managedbuilder.ui,5.1.0.200909110608,"org.eclipse.cdt.managedbuilder.ui",1559816164524
+stopped,bundle,org.eclipse.cdt.make.ui,6.0.1.200909110608,"org.eclipse.cdt.make.ui",1559816164524

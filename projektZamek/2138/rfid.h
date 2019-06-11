@@ -1,0 +1,74 @@
+#ifndef _RFID_H_
+#define _RFID_H_
+#include "spi.h"
+
+ // Stores Mifare ID
+extern tU8 serNum[5];
+
+
+/******************************************************************************
+ * Definitions
+ ******************************************************************************/
+#define MAX_LEN 16
+
+#define PCD_TRANSCEIVE			0x0C
+#define PCD_RESETPHASE       	0x0F
+#define PCD_IDLE              	0x00
+
+#define PICC_REQIDL				0x26 
+#define PICC_ANTICOLL			0x93
+
+
+#define MI_OK					0
+#define MI_NOTAGERR				1
+#define MI_ERR					2
+
+//------------------ MFRC522 registers ---------------
+
+// Command and Status
+#define     CommandReg			0x01
+#define     CommIEnReg			0x02
+#define     CommIrqReg			0x04 
+#define     ErrorReg			0x06
+#define     FIFODataReg			0x09
+#define     FIFOLevelReg		0x0A
+#define     ControlReg			0x0C
+#define     BitFramingReg		0x0D
+#define     ModeReg             0x11
+#define     TxControlReg		0x14
+#define     TxAutoReg           0x15
+#define     TModeReg			0x2A
+#define     TPrescalerReg		0x2B
+#define     TReloadRegH			0x2C
+#define     TReloadRegL			0x2D
+#define     VersionReg          0x37
+
+
+
+void writeMFRC522(tU8 addr, tU8 val);
+
+tU8 readMFRC522(tU8 addr);
+
+void reset();
+
+void setBitMask(tU8 reg, tU8 mask);
+
+void clearBitMask(tU8 reg, tU8 mask);
+
+void antennaOn();
+
+tU8 MFRC522ToCard(tU8 command, tU8 *sendData, tU8 sendLen, tU8 *backData, tU32 *backLen);
+
+tU8  MFRC522Request(tU8 reqMode, tU8 *TagType);
+
+tU8 anticoll(tU8 *serNum);
+
+tU8 isCard();
+
+tU8 readCardSerial();
+
+void initRFID();
+
+tU8 checkIfValidTag();
+
+#endif

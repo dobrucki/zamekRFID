@@ -1,0 +1,1822 @@
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 1
+
+
+   1              		.code	16
+   2              		.file	"main.c"
+   3              		.section	.debug_abbrev,"",%progbits
+   4              	.Ldebug_abbrev0:
+   5              		.section	.debug_info,"",%progbits
+   6              	.Ldebug_info0:
+   7              		.section	.debug_line,"",%progbits
+   8              	.Ldebug_line0:
+   9 0000 B0000000 		.text
+   9      02004400 
+   9      00000201 
+   9      FB0E0D00 
+   9      01010101 
+  10              	.Ltext0:
+  11              		.global	__divsi3
+  12              		.align	2
+  13              		.global	udelay
+  14              		.code 16
+  15              		.thumb_func
+  16              		.type	udelay, %function
+  17              	udelay:
+  18              	.LFB2:
+  19              		.file 1 "main.c"
+   1:main.c        **** /******************************************************************************
+   2:main.c        ****  *
+   3:main.c        ****  * Copyright:
+   4:main.c        ****  *    (C) 2000 - 2007 Embedded Artists AB
+   5:main.c        ****  *
+   6:main.c        ****  * Description:
+   7:main.c        ****  *    Main program for LPC2148 Education Board test program
+   8:main.c        ****  * TO JEST TEN
+   9:main.c        ****  *****************************************************************************/
+  10:main.c        **** 
+  11:main.c        **** #include "pre_emptive_os/api/osapi.h"
+  12:main.c        **** #include "pre_emptive_os/api/general.h"
+  13:main.c        **** #include <printf_P.h>
+  14:main.c        **** #include <ea_init.h>
+  15:main.c        **** #include <lpc2xxx.h>
+  16:main.c        **** #include <consol.h>
+  17:main.c        **** #include "spi.h"
+  18:main.c        **** #include "rfid.h"
+  19:main.c        **** #include "buttons.h"
+  20:main.c        **** #include "led.h"
+  21:main.c        **** #include "pwm.h"
+  22:main.c        **** 
+  23:main.c        **** #define PROC1_STACK_SIZE 1024
+  24:main.c        **** #define PROC2_STACK_SIZE 1024
+  25:main.c        **** #define INIT_STACK_SIZE  400
+  26:main.c        **** 
+  27:main.c        **** static  tU32 KEYPIN_1  = (1 << 20);
+  28:main.c        **** static  tU32 KEYPIN_2  = (1 << 21);
+  29:main.c        **** static  tU32 KEYPIN_3  = (1 << 22);
+  30:main.c        **** static  tU32 KEYPIN_4  = (1 << 23);
+  31:main.c        **** 
+  32:main.c        **** static tU8 proc1Stack[PROC1_STACK_SIZE];
+  33:main.c        **** static tU8 initStack[INIT_STACK_SIZE];
+  34:main.c        **** static tU8 pid1;
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 2
+
+
+  35:main.c        **** 
+  36:main.c        **** static void proc1(void* arg);
+  37:main.c        **** static void initProc(void* arg);
+  38:main.c        **** 
+  39:main.c        **** volatile tU32 msClock;
+  40:main.c        **** volatile tU8 killProc1 = FALSE;
+  41:main.c        **** 
+  42:main.c        **** tU8 buttonOpen[3];
+  43:main.c        **** tU8 serNum[5];
+  44:main.c        **** 
+  45:main.c        **** void udelay(tU32 delayInUs) {
+  20              		.loc 1 45 0
+  21 0000 10B5     		push	{r4, lr}
+  22              	.LCFI0:
+  23              	.LVL0:
+  46:main.c        ****   /*
+  47:main.c        ****    * setup timer #1 for delay
+  48:main.c        ****    */
+  49:main.c        ****   T1TCR = 0x02;          //stop and reset timer
+  24              		.loc 1 49 0
+  25 0002 0F4C     		ldr	r4, .L7
+  26 0004 0223     		mov	r3, #2
+  27 0006 2360     		str	r3, [r4]
+  50:main.c        ****   T1PR  = 0x00;          //set prescaler to zero (PR + 1)
+  28              		.loc 1 50 0
+  29 0008 0E4B     		ldr	r3, .L7+4
+  30 000a 0022     		mov	r2, #0
+  31 000c 1A60     		str	r2, [r3]
+  51:main.c        ****   T1MR0 = (((long)delayInUs-1) * (long)CORE_FREQ/1000) / 1000;
+  32              		.loc 1 51 0
+  33 000e 0E4B     		ldr	r3, .L7+8
+  34 0010 5843     		mul	r0, r3
+  35              	.LVL1:
+  36 0012 0E4A     		ldr	r2, .L7+12
+  37 0014 FA21     		mov	r1, #250
+  38 0016 8018     		add	r0, r0, r2
+  39 0018 8900     		lsl	r1, r1, #2
+  40 001a FFF7FEFF 		bl	__divsi3
+  41 001e 0C4B     		ldr	r3, .L7+16
+  52:main.c        ****   T1IR  = 0xff;          //reset all interrrupt flags
+  42              		.loc 1 52 0
+  43 0020 FF22     		mov	r2, #255
+  44              		.loc 1 51 0
+  45 0022 1860     		str	r0, [r3]
+  46              		.loc 1 52 0
+  47 0024 183B     		sub	r3, r3, #24
+  48 0026 1A60     		str	r2, [r3]
+  53:main.c        ****   T1MCR = 0x04;          //stop timer on match
+  49              		.loc 1 53 0
+  50 0028 1433     		add	r3, r3, #20
+  51 002a 0422     		mov	r2, #4
+  52 002c 1A60     		str	r2, [r3]
+  54:main.c        ****   T1TCR = 0x01;          //start timer
+  53              		.loc 1 54 0
+  54 002e 0123     		mov	r3, #1
+  55 0030 2360     		str	r3, [r4]
+  56              	.L2:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 3
+
+
+  55:main.c        **** 
+  56:main.c        ****   //wait until delay time has elapsed
+  57:main.c        ****   while (T1TCR & 0x01)
+  57              		.loc 1 57 0
+  58 0032 034B     		ldr	r3, .L7
+  59 0034 1B68     		ldr	r3, [r3]
+  60 0036 DA07     		lsl	r2, r3, #31
+  61 0038 FBD4     		bmi	.L2
+  58:main.c        ****     ;
+  59:main.c        **** }
+  62              		.loc 1 59 0
+  63              		@ sp needed for prologue
+  64 003a 10BC     		pop	{r4}
+  65 003c 01BC     		pop	{r0}
+  66 003e 0047     		bx	r0
+  67              	.L8:
+  68              		.align	2
+  69              	.L7:
+  70 0040 048000E0 		.word	-536838140
+  71 0044 0C8000E0 		.word	-536838132
+  72 0048 64E60000 		.word	58980
+  73 004c 9C19FFFF 		.word	-58980
+  74 0050 188000E0 		.word	-536838120
+  75              	.LFE2:
+  76              		.size	udelay, .-udelay
+  77              		.align	2
+  78              		.global	mdelay
+  79              		.code 16
+  80              		.thumb_func
+  81              		.type	mdelay, %function
+  82              	mdelay:
+  83              	.LFB3:
+  60:main.c        **** 
+  61:main.c        **** void mdelay(tU32 delayInUs) {
+  84              		.loc 1 61 0
+  85              	.LVL2:
+  62:main.c        ****   /*
+  63:main.c        ****    * setup timer #1 for delay
+  64:main.c        ****    */
+  65:main.c        ****   T1TCR = 0x02;          //stop and reset timer
+  86              		.loc 1 65 0
+  87 0054 0C49     		ldr	r1, .L15
+  88 0056 0223     		mov	r3, #2
+  89 0058 0B60     		str	r3, [r1]
+  66:main.c        ****   T1PR  = 0x00;          //set prescaler to zero (PR + 1)
+  90              		.loc 1 66 0
+  91 005a 0C4B     		ldr	r3, .L15+4
+  92 005c 0022     		mov	r2, #0
+  93 005e 1A60     		str	r2, [r3]
+  67:main.c        ****   T1MR0 = ((long)delayInUs-1) * (long)CORE_FREQ/1000;
+  94              		.loc 1 67 0
+  95 0060 0B4B     		ldr	r3, .L15+8
+  96 0062 4343     		mul	r3, r0
+  97 0064 0B4A     		ldr	r2, .L15+12
+  98 0066 9B18     		add	r3, r3, r2
+  99 0068 0B4A     		ldr	r2, .L15+16
+ 100 006a 1360     		str	r3, [r2]
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 4
+
+
+  68:main.c        ****   T1IR  = 0xff;          //reset all interrrupt flags
+ 101              		.loc 1 68 0
+ 102 006c 0B4B     		ldr	r3, .L15+20
+ 103 006e FF22     		mov	r2, #255
+ 104 0070 1A60     		str	r2, [r3]
+  69:main.c        ****   T1MCR = 0x04;          //stop timer on match
+ 105              		.loc 1 69 0
+ 106 0072 1433     		add	r3, r3, #20
+ 107 0074 0422     		mov	r2, #4
+ 108 0076 1A60     		str	r2, [r3]
+  70:main.c        ****   T1TCR = 0x01;          //start timer
+ 109              		.loc 1 70 0
+ 110 0078 0123     		mov	r3, #1
+ 111 007a 0B60     		str	r3, [r1]
+ 112              		.loc 1 61 0
+ 113              		@ lr needed for prologue
+ 114              	.L10:
+  71:main.c        **** 
+  72:main.c        ****   //wait until delay time has elapsed
+  73:main.c        ****   while (T1TCR & 0x01)
+ 115              		.loc 1 73 0
+ 116 007c 024B     		ldr	r3, .L15
+ 117 007e 1B68     		ldr	r3, [r3]
+ 118 0080 DA07     		lsl	r2, r3, #31
+ 119 0082 FBD4     		bmi	.L10
+  74:main.c        ****     ;
+  75:main.c        **** }
+ 120              		.loc 1 75 0
+ 121              		@ sp needed for prologue
+ 122 0084 7047     		bx	lr
+ 123              	.L16:
+ 124 0086 0000     		.align	2
+ 125              	.L15:
+ 126 0088 048000E0 		.word	-536838140
+ 127 008c 0C8000E0 		.word	-536838132
+ 128 0090 64E60000 		.word	58980
+ 129 0094 9C19FFFF 		.word	-58980
+ 130 0098 188000E0 		.word	-536838120
+ 131 009c 008000E0 		.word	-536838144
+ 132              	.LFE3:
+ 133              		.size	mdelay, .-mdelay
+ 134              		.align	2
+ 135              		.global	appTick
+ 136              		.code 16
+ 137              		.thumb_func
+ 138              		.type	appTick, %function
+ 139              	appTick:
+ 140              	.LFB8:
+  76:main.c        **** 
+  77:main.c        **** void openDoor() {
+  78:main.c        ****     udelay(50);
+  79:main.c        ****     pwmON();
+  80:main.c        ****     ledON();
+  81:main.c        ****     mdelay(5000);
+  82:main.c        ****     pwmOFF();
+  83:main.c        ****     ledOFF();
+  84:main.c        ****     udelay(50);
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 5
+
+
+  85:main.c        **** }
+  86:main.c        **** 
+  87:main.c        **** 
+  88:main.c        **** int main(void) {
+  89:main.c        ****   tU8 error;
+  90:main.c        ****   tU8 pid;
+  91:main.c        **** 
+  92:main.c        ****   initPWM(0xe8);
+  93:main.c        ****   SPI_Master_Init();
+  94:main.c        ****   initLED();
+  95:main.c        ****   initRFID();
+  96:main.c        **** 
+  97:main.c        ****   osInit();
+  98:main.c        ****   osCreateProcess(initProc, initStack, INIT_STACK_SIZE, &pid, 1, NULL, &error);
+  99:main.c        ****   osStartProcess(pid, &error);
+ 100:main.c        ****   
+ 101:main.c        ****   osStart();
+ 102:main.c        ****   return 0;
+ 103:main.c        **** }
+ 104:main.c        **** 
+ 105:main.c        **** static void proc1(void* arg) {
+ 106:main.c        **** 	for(;;){
+ 107:main.c        **** 		if (checkButton(KEYPIN_1)) {
+ 108:main.c        **** 	    	buttonOpen[0] = 1;
+ 109:main.c        **** 	    	osSleep(50);
+ 110:main.c        **** 	    }
+ 111:main.c        **** 		if (buttonOpen[0]) {
+ 112:main.c        **** 	    	if(checkButton(KEYPIN_3)){
+ 113:main.c        **** 	    		buttonOpen[1] = 1;
+ 114:main.c        **** 	    		osSleep(50);
+ 115:main.c        **** 
+ 116:main.c        **** 	    		buttonOpen[0] = 0;
+ 117:main.c        **** 	    	}
+ 118:main.c        **** 	    	if (checkButton(KEYPIN_2) || checkButton(KEYPIN_1) || checkButton(KEYPIN_4)) {
+ 119:main.c        **** 	    		buttonOpen[0] = 0;
+ 120:main.c        **** 	    	}
+ 121:main.c        **** 	    }
+ 122:main.c        **** 	    if (buttonOpen[1]) {
+ 123:main.c        **** 	    	if (checkButton(KEYPIN_2)) {
+ 124:main.c        **** 	    		buttonOpen[0] = 0;
+ 125:main.c        **** 	    		buttonOpen[1] = 0;
+ 126:main.c        **** 	    		openDoor();
+ 127:main.c        **** 	    		osSleep(50);
+ 128:main.c        **** 	    	}
+ 129:main.c        **** 	    	if (checkButton(KEYPIN_1) || checkButton(KEYPIN_3) || checkButton(KEYPIN_4)) {
+ 130:main.c        **** 	    		buttonOpen[0] = 0;
+ 131:main.c        **** 	    		buttonOpen[1] = 0;
+ 132:main.c        **** 	    	}
+ 133:main.c        **** 	    }
+ 134:main.c        **** 
+ 135:main.c        **** 	    if (isCard()) {
+ 136:main.c        **** 	    	if (readCardSerial()==1){
+ 137:main.c        **** 	    		if(checkIfValidTag()){
+ 138:main.c        **** 	    			openDoor();
+ 139:main.c        **** 	    			printf("JEST OK ");
+ 140:main.c        **** 	    		}
+ 141:main.c        **** 	    	}
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 6
+
+
+ 142:main.c        **** 	    }
+ 143:main.c        **** 	}
+ 144:main.c        **** 
+ 145:main.c        **** }
+ 146:main.c        **** 
+ 147:main.c        **** static void initProc(void* arg) {
+ 148:main.c        ****   tU8 error;
+ 149:main.c        **** 
+ 150:main.c        ****   eaInit();   //initialize printf
+ 151:main.c        ****   osCreateProcess(proc1, proc1Stack, PROC1_STACK_SIZE, &pid1, 3, NULL, &error);
+ 152:main.c        ****   osStartProcess(pid1, &error);
+ 153:main.c        ****   osDeleteProcess();
+ 154:main.c        **** }
+ 155:main.c        **** 
+ 156:main.c        **** void appTick(tU32 elapsedTime) {
+ 141              		.loc 1 156 0
+ 142              	.LVL3:
+ 157:main.c        ****   msClock += elapsedTime;
+ 143              		.loc 1 157 0
+ 144 00a0 024A     		ldr	r2, .L19
+ 145 00a2 1368     		ldr	r3, [r2]
+ 146 00a4 1B18     		add	r3, r3, r0
+ 147              		.loc 1 156 0
+ 148              		@ lr needed for prologue
+ 149              		.loc 1 157 0
+ 150 00a6 1360     		str	r3, [r2]
+ 158:main.c        **** }
+ 151              		.loc 1 158 0
+ 152              		@ sp needed for prologue
+ 153 00a8 7047     		bx	lr
+ 154              	.L20:
+ 155 00aa 0000     		.align	2
+ 156              	.L19:
+ 157 00ac 00000000 		.word	msClock
+ 158              	.LFE8:
+ 159              		.size	appTick, .-appTick
+ 160              		.align	2
+ 161              		.global	main
+ 162              		.code 16
+ 163              		.thumb_func
+ 164              		.type	main, %function
+ 165              	main:
+ 166              	.LFB5:
+ 167              		.loc 1 88 0
+ 168 00b0 30B5     		push	{r4, r5, lr}
+ 169              	.LCFI1:
+ 170 00b2 84B0     		sub	sp, sp, #16
+ 171              	.LCFI2:
+ 172              		.loc 1 92 0
+ 173 00b4 E820     		mov	r0, #232
+ 174 00b6 FFF7FEFF 		bl	initPWM
+ 175              		.loc 1 98 0
+ 176 00ba 6D46     		mov	r5, sp
+ 177              		.loc 1 93 0
+ 178 00bc FFF7FEFF 		bl	SPI_Master_Init
+ 179              		.loc 1 94 0
+ 180 00c0 FFF7FEFF 		bl	initLED
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 7
+
+
+ 181              		.loc 1 95 0
+ 182 00c4 FFF7FEFF 		bl	initRFID
+ 183              		.loc 1 97 0
+ 184 00c8 FFF7FEFF 		bl	osInit
+ 185              		.loc 1 98 0
+ 186 00cc 0123     		mov	r3, #1
+ 187 00ce 0E35     		add	r5, r5, #14
+ 188 00d0 0093     		str	r3, [sp]
+ 189 00d2 6C46     		mov	r4, sp
+ 190 00d4 0023     		mov	r3, #0
+ 191 00d6 C822     		mov	r2, #200
+ 192 00d8 5200     		lsl	r2, r2, #1
+ 193 00da 0193     		str	r3, [sp, #4]
+ 194 00dc 0F34     		add	r4, r4, #15
+ 195 00de 2B1C     		mov	r3, r5
+ 196 00e0 0748     		ldr	r0, .L23
+ 197 00e2 0849     		ldr	r1, .L23+4
+ 198 00e4 0294     		str	r4, [sp, #8]
+ 199 00e6 FFF7FEFF 		bl	osCreateProcess
+ 200              	.LVL4:
+ 201              		.loc 1 99 0
+ 202 00ea 2878     		ldrb	r0, [r5]
+ 203 00ec 211C     		mov	r1, r4
+ 204 00ee FFF7FEFF 		bl	osStartProcess
+ 205              		.loc 1 101 0
+ 206 00f2 FFF7FEFF 		bl	osStart
+ 207              		.loc 1 103 0
+ 208 00f6 0020     		mov	r0, #0
+ 209 00f8 04B0     		add	sp, sp, #16
+ 210              		@ sp needed for prologue
+ 211 00fa 30BC     		pop	{r4, r5}
+ 212 00fc 02BC     		pop	{r1}
+ 213 00fe 0847     		bx	r1
+ 214              	.L24:
+ 215              		.align	2
+ 216              	.L23:
+ 217 0100 00000000 		.word	initProc
+ 218 0104 01040000 		.word	initStack
+ 219              	.LFE5:
+ 220              		.size	main, .-main
+ 221              		.align	2
+ 222              		.code 16
+ 223              		.thumb_func
+ 224              		.type	initProc, %function
+ 225              	initProc:
+ 226              	.LFB7:
+ 227              		.loc 1 147 0
+ 228 0108 30B5     		push	{r4, r5, lr}
+ 229              	.LCFI3:
+ 230              	.LVL5:
+ 231 010a 84B0     		sub	sp, sp, #16
+ 232              	.LCFI4:
+ 233              		.loc 1 150 0
+ 234 010c FFF7FEFF 		bl	eaInit
+ 235              	.LVL6:
+ 236              		.loc 1 151 0
+ 237 0110 0C4D     		ldr	r5, .L27
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 8
+
+
+ 238 0112 0323     		mov	r3, #3
+ 239 0114 0093     		str	r3, [sp]
+ 240 0116 6C46     		mov	r4, sp
+ 241 0118 0023     		mov	r3, #0
+ 242 011a 8022     		mov	r2, #128
+ 243 011c D200     		lsl	r2, r2, #3
+ 244 011e 0193     		str	r3, [sp, #4]
+ 245 0120 0F34     		add	r4, r4, #15
+ 246 0122 2B1C     		mov	r3, r5
+ 247 0124 0848     		ldr	r0, .L27+4
+ 248 0126 0949     		ldr	r1, .L27+8
+ 249 0128 0294     		str	r4, [sp, #8]
+ 250 012a FFF7FEFF 		bl	osCreateProcess
+ 251              		.loc 1 152 0
+ 252 012e 2878     		ldrb	r0, [r5]
+ 253 0130 211C     		mov	r1, r4
+ 254 0132 FFF7FEFF 		bl	osStartProcess
+ 255              		.loc 1 153 0
+ 256 0136 FFF7FEFF 		bl	osDeleteProcess
+ 257              		.loc 1 154 0
+ 258 013a 04B0     		add	sp, sp, #16
+ 259              		@ sp needed for prologue
+ 260 013c 30BC     		pop	{r4, r5}
+ 261 013e 01BC     		pop	{r0}
+ 262 0140 0047     		bx	r0
+ 263              	.L28:
+ 264 0142 0000     		.align	2
+ 265              	.L27:
+ 266 0144 91050000 		.word	pid1
+ 267 0148 00000000 		.word	proc1
+ 268 014c 01000000 		.word	proc1Stack
+ 269              	.LFE7:
+ 270              		.size	initProc, .-initProc
+ 271              		.align	2
+ 272              		.global	openDoor
+ 273              		.code 16
+ 274              		.thumb_func
+ 275              		.type	openDoor, %function
+ 276              	openDoor:
+ 277              	.LFB4:
+ 278              		.loc 1 77 0
+ 279 0150 00B5     		push	{lr}
+ 280              	.LCFI5:
+ 281              		.loc 1 78 0
+ 282 0152 3220     		mov	r0, #50
+ 283 0154 FFF7FEFF 		bl	udelay
+ 284              		.loc 1 79 0
+ 285 0158 FFF7FEFF 		bl	pwmON
+ 286              		.loc 1 80 0
+ 287 015c FFF7FEFF 		bl	ledON
+ 288              		.loc 1 81 0
+ 289 0160 0548     		ldr	r0, .L31
+ 290 0162 FFF7FEFF 		bl	mdelay
+ 291              		.loc 1 82 0
+ 292 0166 FFF7FEFF 		bl	pwmOFF
+ 293              		.loc 1 83 0
+ 294 016a FFF7FEFF 		bl	ledOFF
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 9
+
+
+ 295              		.loc 1 84 0
+ 296 016e 3220     		mov	r0, #50
+ 297 0170 FFF7FEFF 		bl	udelay
+ 298              		.loc 1 85 0
+ 299              		@ sp needed for prologue
+ 300 0174 01BC     		pop	{r0}
+ 301 0176 0047     		bx	r0
+ 302              	.L32:
+ 303              		.align	2
+ 304              	.L31:
+ 305 0178 88130000 		.word	5000
+ 306              	.LFE4:
+ 307              		.size	openDoor, .-openDoor
+ 308              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 309              		.align	2
+ 310              	.LC7:
+ 311 0000 4A455354 		.ascii	"JEST OK \000"
+ 311      204F4B20 
+ 311      00
+ 312 0009 000000   		.text
+ 313              		.align	2
+ 314              		.code 16
+ 315              		.thumb_func
+ 316              		.type	proc1, %function
+ 317              	proc1:
+ 318              	.LFB6:
+ 319              		.loc 1 105 0
+ 320 017c 10B5     		push	{r4, lr}
+ 321              	.LCFI6:
+ 322              	.LVL7:
+ 323              	.L61:
+ 324              		.loc 1 107 0
+ 325 017e 8020     		mov	r0, #128
+ 326              	.LVL8:
+ 327 0180 4003     		lsl	r0, r0, #13
+ 328 0182 FFF7FEFF 		bl	checkButton
+ 329 0186 0028     		cmp	r0, #0
+ 330 0188 05D0     		beq	.L36
+ 331              		.loc 1 108 0
+ 332 018a 334A     		ldr	r2, .L62
+ 333 018c 0123     		mov	r3, #1
+ 334 018e 1370     		strb	r3, [r2]
+ 335              		.loc 1 109 0
+ 336 0190 3220     		mov	r0, #50
+ 337 0192 FFF7FEFF 		bl	osSleep
+ 338              	.L36:
+ 339              		.loc 1 111 0
+ 340 0196 304C     		ldr	r4, .L62
+ 341 0198 2378     		ldrb	r3, [r4]
+ 342 019a 002B     		cmp	r3, #0
+ 343 019c 21D0     		beq	.L38
+ 344              		.loc 1 112 0
+ 345 019e 8020     		mov	r0, #128
+ 346 01a0 C003     		lsl	r0, r0, #15
+ 347 01a2 FFF7FEFF 		bl	checkButton
+ 348 01a6 0028     		cmp	r0, #0
+ 349 01a8 06D0     		beq	.L40
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 10
+
+
+ 350              		.loc 1 113 0
+ 351 01aa 0123     		mov	r3, #1
+ 352 01ac 6370     		strb	r3, [r4, #1]
+ 353              		.loc 1 114 0
+ 354 01ae 3220     		mov	r0, #50
+ 355 01b0 FFF7FEFF 		bl	osSleep
+ 356              		.loc 1 116 0
+ 357 01b4 0023     		mov	r3, #0
+ 358 01b6 2370     		strb	r3, [r4]
+ 359              	.L40:
+ 360              		.loc 1 118 0
+ 361 01b8 8020     		mov	r0, #128
+ 362 01ba 8003     		lsl	r0, r0, #14
+ 363 01bc FFF7FEFF 		bl	checkButton
+ 364 01c0 0028     		cmp	r0, #0
+ 365 01c2 0BD1     		bne	.L42
+ 366 01c4 8020     		mov	r0, #128
+ 367 01c6 4003     		lsl	r0, r0, #13
+ 368 01c8 FFF7FEFF 		bl	checkButton
+ 369 01cc 0028     		cmp	r0, #0
+ 370 01ce 05D1     		bne	.L42
+ 371 01d0 8020     		mov	r0, #128
+ 372 01d2 0004     		lsl	r0, r0, #16
+ 373 01d4 FFF7FEFF 		bl	checkButton
+ 374 01d8 0028     		cmp	r0, #0
+ 375 01da 02D0     		beq	.L38
+ 376              	.L42:
+ 377              		.loc 1 119 0
+ 378 01dc 1E4A     		ldr	r2, .L62
+ 379 01de 0023     		mov	r3, #0
+ 380 01e0 1370     		strb	r3, [r2]
+ 381              	.L38:
+ 382              		.loc 1 122 0
+ 383 01e2 1D4C     		ldr	r4, .L62
+ 384 01e4 6378     		ldrb	r3, [r4, #1]
+ 385 01e6 002B     		cmp	r3, #0
+ 386 01e8 23D0     		beq	.L45
+ 387              		.loc 1 123 0
+ 388 01ea 8020     		mov	r0, #128
+ 389 01ec 8003     		lsl	r0, r0, #14
+ 390 01ee FFF7FEFF 		bl	checkButton
+ 391 01f2 0028     		cmp	r0, #0
+ 392 01f4 07D0     		beq	.L47
+ 393              		.loc 1 124 0
+ 394 01f6 0023     		mov	r3, #0
+ 395 01f8 2370     		strb	r3, [r4]
+ 396              		.loc 1 125 0
+ 397 01fa 6370     		strb	r3, [r4, #1]
+ 398              		.loc 1 126 0
+ 399 01fc FFF7FEFF 		bl	openDoor
+ 400              		.loc 1 127 0
+ 401 0200 3220     		mov	r0, #50
+ 402 0202 FFF7FEFF 		bl	osSleep
+ 403              	.L47:
+ 404              		.loc 1 129 0
+ 405 0206 8020     		mov	r0, #128
+ 406 0208 4003     		lsl	r0, r0, #13
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 11
+
+
+ 407 020a FFF7FEFF 		bl	checkButton
+ 408 020e 0028     		cmp	r0, #0
+ 409 0210 0BD1     		bne	.L49
+ 410 0212 8020     		mov	r0, #128
+ 411 0214 C003     		lsl	r0, r0, #15
+ 412 0216 FFF7FEFF 		bl	checkButton
+ 413 021a 0028     		cmp	r0, #0
+ 414 021c 05D1     		bne	.L49
+ 415 021e 8020     		mov	r0, #128
+ 416 0220 0004     		lsl	r0, r0, #16
+ 417 0222 FFF7FEFF 		bl	checkButton
+ 418 0226 0028     		cmp	r0, #0
+ 419 0228 03D0     		beq	.L45
+ 420              	.L49:
+ 421              		.loc 1 130 0
+ 422 022a 0B4A     		ldr	r2, .L62
+ 423 022c 0023     		mov	r3, #0
+ 424 022e 1370     		strb	r3, [r2]
+ 425              		.loc 1 131 0
+ 426 0230 5370     		strb	r3, [r2, #1]
+ 427              	.L45:
+ 428              		.loc 1 135 0
+ 429 0232 FFF7FEFF 		bl	isCard
+ 430 0236 0028     		cmp	r0, #0
+ 431 0238 A1D0     		beq	.L61
+ 432              		.loc 1 136 0
+ 433 023a FFF7FEFF 		bl	readCardSerial
+ 434 023e 0128     		cmp	r0, #1
+ 435 0240 9DD1     		bne	.L61
+ 436              		.loc 1 137 0
+ 437 0242 FFF7FEFF 		bl	checkIfValidTag
+ 438 0246 0028     		cmp	r0, #0
+ 439 0248 99D0     		beq	.L61
+ 440              		.loc 1 138 0
+ 441 024a FFF7FEFF 		bl	openDoor
+ 442              		.loc 1 139 0
+ 443 024e 0348     		ldr	r0, .L62+4
+ 444 0250 FFF7FEFF 		bl	simplePrintf
+ 445 0254 93E7     		b	.L61
+ 446              	.L63:
+ 447 0256 0000     		.align	2
+ 448              	.L62:
+ 449 0258 00000000 		.word	buttonOpen
+ 450 025c 00000000 		.word	.LC7
+ 451              	.LFE6:
+ 452              		.size	proc1, .-proc1
+ 453              		.global	killProc1
+ 454              		.bss
+ 455              		.type	killProc1, %object
+ 456              		.size	killProc1, 1
+ 457              	killProc1:
+ 458 0000 00       		.space	1
+ 459              	proc1Stack:
+ 460 0001 00000000 		.space	1024
+ 460      00000000 
+ 460      00000000 
+ 460      00000000 
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 12
+
+
+ 460      00000000 
+ 461              	initStack:
+ 462 0401 00000000 		.space	400
+ 462      00000000 
+ 462      00000000 
+ 462      00000000 
+ 462      00000000 
+ 463              	pid1:
+ 464 0591 00       		.space	1
+ 465              		.comm	serNum,5,1
+ 466              		.comm	msClock,4,4
+ 467              		.comm	buttonOpen,3,1
+ 468              		.section	.debug_frame,"",%progbits
+ 469              	.Lframe0:
+ 470 0000 0C000000 		.4byte	.LECIE0-.LSCIE0
+ 471              	.LSCIE0:
+ 472 0004 FFFFFFFF 		.4byte	0xffffffff
+ 473 0008 01       		.byte	0x1
+ 474 0009 00       		.ascii	"\000"
+ 475 000a 01       		.uleb128 0x1
+ 476 000b 7C       		.sleb128 -4
+ 477 000c 0E       		.byte	0xe
+ 478 000d 0C       		.byte	0xc
+ 479 000e 0D       		.uleb128 0xd
+ 480 000f 00       		.uleb128 0x0
+ 481              		.align	2
+ 482              	.LECIE0:
+ 483              	.LSFDE0:
+ 484 0010 14000000 		.4byte	.LEFDE0-.LASFDE0
+ 485              	.LASFDE0:
+ 486 0014 00000000 		.4byte	.Lframe0
+ 487 0018 00000000 		.4byte	.LFB2
+ 488 001c 54000000 		.4byte	.LFE2-.LFB2
+ 489 0020 42       		.byte	0x4
+ 490              		.4byte	.LCFI0-.LFB2
+ 491 0021 0E       		.byte	0xe
+ 492 0022 08       		.uleb128 0x8
+ 493 0023 84       		.byte	0x84
+ 494 0024 02       		.uleb128 0x2
+ 495 0025 8E       		.byte	0x8e
+ 496 0026 01       		.uleb128 0x1
+ 497 0027 00       		.align	2
+ 498              	.LEFDE0:
+ 499              	.LSFDE2:
+ 500 0028 0C000000 		.4byte	.LEFDE2-.LASFDE2
+ 501              	.LASFDE2:
+ 502 002c 00000000 		.4byte	.Lframe0
+ 503 0030 54000000 		.4byte	.LFB3
+ 504 0034 4C000000 		.4byte	.LFE3-.LFB3
+ 505              		.align	2
+ 506              	.LEFDE2:
+ 507              	.LSFDE4:
+ 508 0038 0C000000 		.4byte	.LEFDE4-.LASFDE4
+ 509              	.LASFDE4:
+ 510 003c 00000000 		.4byte	.Lframe0
+ 511 0040 A0000000 		.4byte	.LFB8
+ 512 0044 10000000 		.4byte	.LFE8-.LFB8
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 13
+
+
+ 513              		.align	2
+ 514              	.LEFDE4:
+ 515              	.LSFDE6:
+ 516 0048 18000000 		.4byte	.LEFDE6-.LASFDE6
+ 517              	.LASFDE6:
+ 518 004c 00000000 		.4byte	.Lframe0
+ 519 0050 B0000000 		.4byte	.LFB5
+ 520 0054 58000000 		.4byte	.LFE5-.LFB5
+ 521 0058 42       		.byte	0x4
+ 522              		.4byte	.LCFI1-.LFB5
+ 523 0059 0E       		.byte	0xe
+ 524 005a 0C       		.uleb128 0xc
+ 525 005b 84       		.byte	0x84
+ 526 005c 03       		.uleb128 0x3
+ 527 005d 85       		.byte	0x85
+ 528 005e 02       		.uleb128 0x2
+ 529 005f 8E       		.byte	0x8e
+ 530 0060 01       		.uleb128 0x1
+ 531 0061 42       		.byte	0x4
+ 532              		.4byte	.LCFI2-.LCFI1
+ 533 0062 0E       		.byte	0xe
+ 534 0063 1C       		.uleb128 0x1c
+ 535              		.align	2
+ 536              	.LEFDE6:
+ 537              	.LSFDE8:
+ 538 0064 18000000 		.4byte	.LEFDE8-.LASFDE8
+ 539              	.LASFDE8:
+ 540 0068 00000000 		.4byte	.Lframe0
+ 541 006c 08010000 		.4byte	.LFB7
+ 542 0070 48000000 		.4byte	.LFE7-.LFB7
+ 543 0074 42       		.byte	0x4
+ 544              		.4byte	.LCFI3-.LFB7
+ 545 0075 0E       		.byte	0xe
+ 546 0076 0C       		.uleb128 0xc
+ 547 0077 84       		.byte	0x84
+ 548 0078 03       		.uleb128 0x3
+ 549 0079 85       		.byte	0x85
+ 550 007a 02       		.uleb128 0x2
+ 551 007b 8E       		.byte	0x8e
+ 552 007c 01       		.uleb128 0x1
+ 553 007d 42       		.byte	0x4
+ 554              		.4byte	.LCFI4-.LCFI3
+ 555 007e 0E       		.byte	0xe
+ 556 007f 1C       		.uleb128 0x1c
+ 557              		.align	2
+ 558              	.LEFDE8:
+ 559              	.LSFDE10:
+ 560 0080 14000000 		.4byte	.LEFDE10-.LASFDE10
+ 561              	.LASFDE10:
+ 562 0084 00000000 		.4byte	.Lframe0
+ 563 0088 50010000 		.4byte	.LFB4
+ 564 008c 2C000000 		.4byte	.LFE4-.LFB4
+ 565 0090 42       		.byte	0x4
+ 566              		.4byte	.LCFI5-.LFB4
+ 567 0091 0E       		.byte	0xe
+ 568 0092 04       		.uleb128 0x4
+ 569 0093 8E       		.byte	0x8e
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 14
+
+
+ 570 0094 01       		.uleb128 0x1
+ 571 0095 000000   		.align	2
+ 572              	.LEFDE10:
+ 573              	.LSFDE12:
+ 574 0098 14000000 		.4byte	.LEFDE12-.LASFDE12
+ 575              	.LASFDE12:
+ 576 009c 00000000 		.4byte	.Lframe0
+ 577 00a0 7C010000 		.4byte	.LFB6
+ 578 00a4 E4000000 		.4byte	.LFE6-.LFB6
+ 579 00a8 42       		.byte	0x4
+ 580              		.4byte	.LCFI6-.LFB6
+ 581 00a9 0E       		.byte	0xe
+ 582 00aa 08       		.uleb128 0x8
+ 583 00ab 84       		.byte	0x84
+ 584 00ac 02       		.uleb128 0x2
+ 585 00ad 8E       		.byte	0x8e
+ 586 00ae 01       		.uleb128 0x1
+ 587 00af 00       		.align	2
+ 588              	.LEFDE12:
+ 589              		.file 2 "pre_emptive_os/api/../api/general.h"
+ 590              		.text
+ 591              	.Letext0:
+ 592              		.section	.debug_loc,"",%progbits
+ 593              	.Ldebug_loc0:
+ 594              	.LLST0:
+ 595 0000 00000000 		.4byte	.LFB2-.Ltext0
+ 596 0004 02000000 		.4byte	.LCFI0-.Ltext0
+ 597 0008 0100     		.2byte	0x1
+ 598 000a 5D       		.byte	0x5d
+ 599 000b 02000000 		.4byte	.LCFI0-.Ltext0
+ 600 000f 54000000 		.4byte	.LFE2-.Ltext0
+ 601 0013 0200     		.2byte	0x2
+ 602 0015 7D       		.byte	0x7d
+ 603 0016 08       		.sleb128 8
+ 604 0017 00000000 		.4byte	0x0
+ 605 001b 00000000 		.4byte	0x0
+ 606              	.LLST1:
+ 607 001f 02000000 		.4byte	.LVL0-.Ltext0
+ 608 0023 12000000 		.4byte	.LVL1-.Ltext0
+ 609 0027 0100     		.2byte	0x1
+ 610 0029 50       		.byte	0x50
+ 611 002a 00000000 		.4byte	0x0
+ 612 002e 00000000 		.4byte	0x0
+ 613              	.LLST4:
+ 614 0032 B0000000 		.4byte	.LFB5-.Ltext0
+ 615 0036 B2000000 		.4byte	.LCFI1-.Ltext0
+ 616 003a 0100     		.2byte	0x1
+ 617 003c 5D       		.byte	0x5d
+ 618 003d B2000000 		.4byte	.LCFI1-.Ltext0
+ 619 0041 B4000000 		.4byte	.LCFI2-.Ltext0
+ 620 0045 0200     		.2byte	0x2
+ 621 0047 7D       		.byte	0x7d
+ 622 0048 0C       		.sleb128 12
+ 623 0049 B4000000 		.4byte	.LCFI2-.Ltext0
+ 624 004d 08010000 		.4byte	.LFE5-.Ltext0
+ 625 0051 0200     		.2byte	0x2
+ 626 0053 7D       		.byte	0x7d
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 15
+
+
+ 627 0054 1C       		.sleb128 28
+ 628 0055 00000000 		.4byte	0x0
+ 629 0059 00000000 		.4byte	0x0
+ 630              	.LLST5:
+ 631 005d 08010000 		.4byte	.LFB7-.Ltext0
+ 632 0061 0A010000 		.4byte	.LCFI3-.Ltext0
+ 633 0065 0100     		.2byte	0x1
+ 634 0067 5D       		.byte	0x5d
+ 635 0068 0A010000 		.4byte	.LCFI3-.Ltext0
+ 636 006c 0C010000 		.4byte	.LCFI4-.Ltext0
+ 637 0070 0200     		.2byte	0x2
+ 638 0072 7D       		.byte	0x7d
+ 639 0073 0C       		.sleb128 12
+ 640 0074 0C010000 		.4byte	.LCFI4-.Ltext0
+ 641 0078 50010000 		.4byte	.LFE7-.Ltext0
+ 642 007c 0200     		.2byte	0x2
+ 643 007e 7D       		.byte	0x7d
+ 644 007f 1C       		.sleb128 28
+ 645 0080 00000000 		.4byte	0x0
+ 646 0084 00000000 		.4byte	0x0
+ 647              	.LLST6:
+ 648 0088 0A010000 		.4byte	.LVL5-.Ltext0
+ 649 008c 10010000 		.4byte	.LVL6-.Ltext0
+ 650 0090 0100     		.2byte	0x1
+ 651 0092 50       		.byte	0x50
+ 652 0093 00000000 		.4byte	0x0
+ 653 0097 00000000 		.4byte	0x0
+ 654              	.LLST7:
+ 655 009b 50010000 		.4byte	.LFB4-.Ltext0
+ 656 009f 52010000 		.4byte	.LCFI5-.Ltext0
+ 657 00a3 0100     		.2byte	0x1
+ 658 00a5 5D       		.byte	0x5d
+ 659 00a6 52010000 		.4byte	.LCFI5-.Ltext0
+ 660 00aa 7C010000 		.4byte	.LFE4-.Ltext0
+ 661 00ae 0200     		.2byte	0x2
+ 662 00b0 7D       		.byte	0x7d
+ 663 00b1 04       		.sleb128 4
+ 664 00b2 00000000 		.4byte	0x0
+ 665 00b6 00000000 		.4byte	0x0
+ 666              	.LLST8:
+ 667 00ba 7C010000 		.4byte	.LFB6-.Ltext0
+ 668 00be 7E010000 		.4byte	.LCFI6-.Ltext0
+ 669 00c2 0100     		.2byte	0x1
+ 670 00c4 5D       		.byte	0x5d
+ 671 00c5 7E010000 		.4byte	.LCFI6-.Ltext0
+ 672 00c9 60020000 		.4byte	.LFE6-.Ltext0
+ 673 00cd 0200     		.2byte	0x2
+ 674 00cf 7D       		.byte	0x7d
+ 675 00d0 08       		.sleb128 8
+ 676 00d1 00000000 		.4byte	0x0
+ 677 00d5 00000000 		.4byte	0x0
+ 678              	.LLST9:
+ 679 00d9 7E010000 		.4byte	.LVL7-.Ltext0
+ 680 00dd 80010000 		.4byte	.LVL8-.Ltext0
+ 681 00e1 0100     		.2byte	0x1
+ 682 00e3 50       		.byte	0x50
+ 683 00e4 00000000 		.4byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 16
+
+
+ 684 00e8 00000000 		.4byte	0x0
+ 685              		.section	.debug_info
+ 686 0000 A1020000 		.4byte	0x2a1
+ 687 0004 0200     		.2byte	0x2
+ 688 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 689 000a 04       		.byte	0x4
+ 690 000b 01       		.uleb128 0x1
+ 691 000c 00000000 		.4byte	.Ldebug_line0
+ 692 0010 60020000 		.4byte	.Letext0
+ 693 0014 00000000 		.4byte	.Ltext0
+ 694 0018 01010000 		.4byte	.LASF27
+ 695 001c 01       		.byte	0x1
+ 696 001d 59010000 		.4byte	.LASF28
+ 697 0021 81000000 		.4byte	.LASF29
+ 698 0025 02       		.uleb128 0x2
+ 699 0026 74553800 		.ascii	"tU8\000"
+ 700 002a 02       		.byte	0x2
+ 701 002b 47       		.byte	0x47
+ 702 002c 30000000 		.4byte	0x30
+ 703 0030 03       		.uleb128 0x3
+ 704 0031 39000000 		.4byte	.LASF0
+ 705 0035 01       		.byte	0x1
+ 706 0036 08       		.byte	0x8
+ 707 0037 03       		.uleb128 0x3
+ 708 0038 59000000 		.4byte	.LASF1
+ 709 003c 02       		.byte	0x2
+ 710 003d 07       		.byte	0x7
+ 711 003e 04       		.uleb128 0x4
+ 712 003f 16010000 		.4byte	.LASF2
+ 713 0043 02       		.byte	0x2
+ 714 0044 49       		.byte	0x49
+ 715 0045 49000000 		.4byte	0x49
+ 716 0049 03       		.uleb128 0x3
+ 717 004a D8000000 		.4byte	.LASF3
+ 718 004e 04       		.byte	0x4
+ 719 004f 07       		.byte	0x7
+ 720 0050 03       		.uleb128 0x3
+ 721 0051 46010000 		.4byte	.LASF4
+ 722 0055 01       		.byte	0x1
+ 723 0056 06       		.byte	0x6
+ 724 0057 03       		.uleb128 0x3
+ 725 0058 2C010000 		.4byte	.LASF5
+ 726 005c 02       		.byte	0x2
+ 727 005d 05       		.byte	0x5
+ 728 005e 05       		.uleb128 0x5
+ 729 005f 696E7400 		.ascii	"int\000"
+ 730 0063 04       		.byte	0x4
+ 731 0064 05       		.byte	0x5
+ 732 0065 03       		.uleb128 0x3
+ 733 0066 47000000 		.4byte	.LASF6
+ 734 006a 04       		.byte	0x4
+ 735 006b 07       		.byte	0x7
+ 736 006c 06       		.uleb128 0x6
+ 737 006d 04       		.byte	0x4
+ 738 006e 07       		.uleb128 0x7
+ 739 006f 97000000 		.4byte	0x97
+ 740 0073 01       		.byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 17
+
+
+ 741 0074 F1000000 		.4byte	.LASF7
+ 742 0078 01       		.byte	0x1
+ 743 0079 2D       		.byte	0x2d
+ 744 007a 01       		.byte	0x1
+ 745 007b 00000000 		.4byte	.LFB2
+ 746 007f 54000000 		.4byte	.LFE2
+ 747 0083 00000000 		.4byte	.LLST0
+ 748 0087 08       		.uleb128 0x8
+ 749 0088 3C010000 		.4byte	.LASF9
+ 750 008c 01       		.byte	0x1
+ 751 008d 2D       		.byte	0x2d
+ 752 008e 3E000000 		.4byte	0x3e
+ 753 0092 1F000000 		.4byte	.LLST1
+ 754 0096 00       		.byte	0x0
+ 755 0097 09       		.uleb128 0x9
+ 756 0098 BC000000 		.4byte	0xbc
+ 757 009c 01       		.byte	0x1
+ 758 009d 1A000000 		.4byte	.LASF8
+ 759 00a1 01       		.byte	0x1
+ 760 00a2 3D       		.byte	0x3d
+ 761 00a3 01       		.byte	0x1
+ 762 00a4 54000000 		.4byte	.LFB3
+ 763 00a8 A0000000 		.4byte	.LFE3
+ 764 00ac 01       		.byte	0x1
+ 765 00ad 5D       		.byte	0x5d
+ 766 00ae 0A       		.uleb128 0xa
+ 767 00af 3C010000 		.4byte	.LASF9
+ 768 00b3 01       		.byte	0x1
+ 769 00b4 3D       		.byte	0x3d
+ 770 00b5 3E000000 		.4byte	0x3e
+ 771 00b9 01       		.byte	0x1
+ 772 00ba 50       		.byte	0x50
+ 773 00bb 00       		.byte	0x0
+ 774 00bc 09       		.uleb128 0x9
+ 775 00bd E1000000 		.4byte	0xe1
+ 776 00c1 01       		.byte	0x1
+ 777 00c2 24010000 		.4byte	.LASF10
+ 778 00c6 01       		.byte	0x1
+ 779 00c7 9C       		.byte	0x9c
+ 780 00c8 01       		.byte	0x1
+ 781 00c9 A0000000 		.4byte	.LFB8
+ 782 00cd B0000000 		.4byte	.LFE8
+ 783 00d1 01       		.byte	0x1
+ 784 00d2 5D       		.byte	0x5d
+ 785 00d3 0A       		.uleb128 0xa
+ 786 00d4 E5000000 		.4byte	.LASF11
+ 787 00d8 01       		.byte	0x1
+ 788 00d9 9C       		.byte	0x9c
+ 789 00da 3E000000 		.4byte	0x3e
+ 790 00de 01       		.byte	0x1
+ 791 00df 50       		.byte	0x50
+ 792 00e0 00       		.byte	0x0
+ 793 00e1 0B       		.uleb128 0xb
+ 794 00e2 1B010000 		.4byte	0x11b
+ 795 00e6 01       		.byte	0x1
+ 796 00e7 D3000000 		.4byte	.LASF12
+ 797 00eb 01       		.byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 18
+
+
+ 798 00ec 58       		.byte	0x58
+ 799 00ed 01       		.byte	0x1
+ 800 00ee 5E000000 		.4byte	0x5e
+ 801 00f2 B0000000 		.4byte	.LFB5
+ 802 00f6 08010000 		.4byte	.LFE5
+ 803 00fa 32000000 		.4byte	.LLST4
+ 804 00fe 0C       		.uleb128 0xc
+ 805 00ff 36010000 		.4byte	.LASF13
+ 806 0103 01       		.byte	0x1
+ 807 0104 59       		.byte	0x59
+ 808 0105 25000000 		.4byte	0x25
+ 809 0109 02       		.byte	0x2
+ 810 010a 91       		.byte	0x91
+ 811 010b 73       		.sleb128 -13
+ 812 010c 0D       		.uleb128 0xd
+ 813 010d 70696400 		.ascii	"pid\000"
+ 814 0111 01       		.byte	0x1
+ 815 0112 5A       		.byte	0x5a
+ 816 0113 25000000 		.4byte	0x25
+ 817 0117 02       		.byte	0x2
+ 818 0118 75       		.byte	0x75
+ 819 0119 00       		.sleb128 0
+ 820 011a 00       		.byte	0x0
+ 821 011b 0E       		.uleb128 0xe
+ 822 011c 51010000 		.4byte	0x151
+ 823 0120 F8000000 		.4byte	.LASF14
+ 824 0124 01       		.byte	0x1
+ 825 0125 93       		.byte	0x93
+ 826 0126 01       		.byte	0x1
+ 827 0127 08010000 		.4byte	.LFB7
+ 828 012b 50010000 		.4byte	.LFE7
+ 829 012f 5D000000 		.4byte	.LLST5
+ 830 0133 0F       		.uleb128 0xf
+ 831 0134 61726700 		.ascii	"arg\000"
+ 832 0138 01       		.byte	0x1
+ 833 0139 93       		.byte	0x93
+ 834 013a 6C000000 		.4byte	0x6c
+ 835 013e 88000000 		.4byte	.LLST6
+ 836 0142 0C       		.uleb128 0xc
+ 837 0143 36010000 		.4byte	.LASF13
+ 838 0147 01       		.byte	0x1
+ 839 0148 94       		.byte	0x94
+ 840 0149 25000000 		.4byte	0x25
+ 841 014d 02       		.byte	0x2
+ 842 014e 91       		.byte	0x91
+ 843 014f 73       		.sleb128 -13
+ 844 0150 00       		.byte	0x0
+ 845 0151 10       		.uleb128 0x10
+ 846 0152 01       		.byte	0x1
+ 847 0153 11000000 		.4byte	.LASF30
+ 848 0157 01       		.byte	0x1
+ 849 0158 4D       		.byte	0x4d
+ 850 0159 50010000 		.4byte	.LFB4
+ 851 015d 7C010000 		.4byte	.LFE4
+ 852 0161 9B000000 		.4byte	.LLST7
+ 853 0165 0E       		.uleb128 0xe
+ 854 0166 8D010000 		.4byte	0x18d
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 19
+
+
+ 855 016a CD000000 		.4byte	.LASF15
+ 856 016e 01       		.byte	0x1
+ 857 016f 69       		.byte	0x69
+ 858 0170 01       		.byte	0x1
+ 859 0171 7C010000 		.4byte	.LFB6
+ 860 0175 60020000 		.4byte	.LFE6
+ 861 0179 BA000000 		.4byte	.LLST8
+ 862 017d 0F       		.uleb128 0xf
+ 863 017e 61726700 		.ascii	"arg\000"
+ 864 0182 01       		.byte	0x1
+ 865 0183 69       		.byte	0x69
+ 866 0184 6C000000 		.4byte	0x6c
+ 867 0188 D9000000 		.4byte	.LLST9
+ 868 018c 00       		.byte	0x0
+ 869 018d 11       		.uleb128 0x11
+ 870 018e 0D010000 		.4byte	.LASF16
+ 871 0192 01       		.byte	0x1
+ 872 0193 1B       		.byte	0x1b
+ 873 0194 9C010000 		.4byte	0x19c
+ 874 0198 00001000 		.4byte	0x100000
+ 875 019c 12       		.uleb128 0x12
+ 876 019d 3E000000 		.4byte	0x3e
+ 877 01a1 11       		.uleb128 0x11
+ 878 01a2 30000000 		.4byte	.LASF17
+ 879 01a6 01       		.byte	0x1
+ 880 01a7 1C       		.byte	0x1c
+ 881 01a8 B0010000 		.4byte	0x1b0
+ 882 01ac 00002000 		.4byte	0x200000
+ 883 01b0 12       		.uleb128 0x12
+ 884 01b1 3E000000 		.4byte	0x3e
+ 885 01b5 11       		.uleb128 0x11
+ 886 01b6 08000000 		.4byte	.LASF18
+ 887 01ba 01       		.byte	0x1
+ 888 01bb 1D       		.byte	0x1d
+ 889 01bc C4010000 		.4byte	0x1c4
+ 890 01c0 00004000 		.4byte	0x400000
+ 891 01c4 12       		.uleb128 0x12
+ 892 01c5 3E000000 		.4byte	0x3e
+ 893 01c9 11       		.uleb128 0x11
+ 894 01ca 1B010000 		.4byte	.LASF19
+ 895 01ce 01       		.byte	0x1
+ 896 01cf 1E       		.byte	0x1e
+ 897 01d0 D8010000 		.4byte	0x1d8
+ 898 01d4 00008000 		.4byte	0x800000
+ 899 01d8 12       		.uleb128 0x12
+ 900 01d9 3E000000 		.4byte	0x3e
+ 901 01dd 13       		.uleb128 0x13
+ 902 01de EE010000 		.4byte	0x1ee
+ 903 01e2 25000000 		.4byte	0x25
+ 904 01e6 14       		.uleb128 0x14
+ 905 01e7 65000000 		.4byte	0x65
+ 906 01eb FF03     		.2byte	0x3ff
+ 907 01ed 00       		.byte	0x0
+ 908 01ee 0C       		.uleb128 0xc
+ 909 01ef 60010000 		.4byte	.LASF20
+ 910 01f3 01       		.byte	0x1
+ 911 01f4 20       		.byte	0x20
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 20
+
+
+ 912 01f5 DD010000 		.4byte	0x1dd
+ 913 01f9 05       		.byte	0x5
+ 914 01fa 03       		.byte	0x3
+ 915 01fb 01000000 		.4byte	proc1Stack
+ 916 01ff 13       		.uleb128 0x13
+ 917 0200 10020000 		.4byte	0x210
+ 918 0204 25000000 		.4byte	0x25
+ 919 0208 14       		.uleb128 0x14
+ 920 0209 65000000 		.4byte	0x65
+ 921 020d 8F01     		.2byte	0x18f
+ 922 020f 00       		.byte	0x0
+ 923 0210 0C       		.uleb128 0xc
+ 924 0211 21000000 		.4byte	.LASF21
+ 925 0215 01       		.byte	0x1
+ 926 0216 21       		.byte	0x21
+ 927 0217 FF010000 		.4byte	0x1ff
+ 928 021b 05       		.byte	0x5
+ 929 021c 03       		.byte	0x3
+ 930 021d 01040000 		.4byte	initStack
+ 931 0221 0C       		.uleb128 0xc
+ 932 0222 2B000000 		.4byte	.LASF22
+ 933 0226 01       		.byte	0x1
+ 934 0227 22       		.byte	0x22
+ 935 0228 25000000 		.4byte	0x25
+ 936 022c 05       		.byte	0x5
+ 937 022d 03       		.byte	0x3
+ 938 022e 91050000 		.4byte	pid1
+ 939 0232 13       		.uleb128 0x13
+ 940 0233 42020000 		.4byte	0x242
+ 941 0237 25000000 		.4byte	0x25
+ 942 023b 15       		.uleb128 0x15
+ 943 023c 65000000 		.4byte	0x65
+ 944 0240 04       		.byte	0x4
+ 945 0241 00       		.byte	0x0
+ 946 0242 16       		.uleb128 0x16
+ 947 0243 52010000 		.4byte	.LASF23
+ 948 0247 01       		.byte	0x1
+ 949 0248 2B       		.byte	0x2b
+ 950 0249 32020000 		.4byte	0x232
+ 951 024d 01       		.byte	0x1
+ 952 024e 05       		.byte	0x5
+ 953 024f 03       		.byte	0x3
+ 954 0250 00000000 		.4byte	serNum
+ 955 0254 16       		.uleb128 0x16
+ 956 0255 00000000 		.4byte	.LASF24
+ 957 0259 01       		.byte	0x1
+ 958 025a 27       		.byte	0x27
+ 959 025b 66020000 		.4byte	0x266
+ 960 025f 01       		.byte	0x1
+ 961 0260 05       		.byte	0x5
+ 962 0261 03       		.byte	0x3
+ 963 0262 00000000 		.4byte	msClock
+ 964 0266 17       		.uleb128 0x17
+ 965 0267 3E000000 		.4byte	0x3e
+ 966 026b 16       		.uleb128 0x16
+ 967 026c 6C000000 		.4byte	.LASF25
+ 968 0270 01       		.byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 21
+
+
+ 969 0271 28       		.byte	0x28
+ 970 0272 7D020000 		.4byte	0x27d
+ 971 0276 01       		.byte	0x1
+ 972 0277 05       		.byte	0x5
+ 973 0278 03       		.byte	0x3
+ 974 0279 00000000 		.4byte	killProc1
+ 975 027d 17       		.uleb128 0x17
+ 976 027e 25000000 		.4byte	0x25
+ 977 0282 13       		.uleb128 0x13
+ 978 0283 92020000 		.4byte	0x292
+ 979 0287 25000000 		.4byte	0x25
+ 980 028b 15       		.uleb128 0x15
+ 981 028c 65000000 		.4byte	0x65
+ 982 0290 02       		.byte	0x2
+ 983 0291 00       		.byte	0x0
+ 984 0292 16       		.uleb128 0x16
+ 985 0293 76000000 		.4byte	.LASF26
+ 986 0297 01       		.byte	0x1
+ 987 0298 2A       		.byte	0x2a
+ 988 0299 82020000 		.4byte	0x282
+ 989 029d 01       		.byte	0x1
+ 990 029e 05       		.byte	0x5
+ 991 029f 03       		.byte	0x3
+ 992 02a0 00000000 		.4byte	buttonOpen
+ 993 02a4 00       		.byte	0x0
+ 994              		.section	.debug_abbrev
+ 995 0000 01       		.uleb128 0x1
+ 996 0001 11       		.uleb128 0x11
+ 997 0002 01       		.byte	0x1
+ 998 0003 10       		.uleb128 0x10
+ 999 0004 06       		.uleb128 0x6
+ 1000 0005 12       		.uleb128 0x12
+ 1001 0006 01       		.uleb128 0x1
+ 1002 0007 11       		.uleb128 0x11
+ 1003 0008 01       		.uleb128 0x1
+ 1004 0009 25       		.uleb128 0x25
+ 1005 000a 0E       		.uleb128 0xe
+ 1006 000b 13       		.uleb128 0x13
+ 1007 000c 0B       		.uleb128 0xb
+ 1008 000d 03       		.uleb128 0x3
+ 1009 000e 0E       		.uleb128 0xe
+ 1010 000f 1B       		.uleb128 0x1b
+ 1011 0010 0E       		.uleb128 0xe
+ 1012 0011 00       		.byte	0x0
+ 1013 0012 00       		.byte	0x0
+ 1014 0013 02       		.uleb128 0x2
+ 1015 0014 16       		.uleb128 0x16
+ 1016 0015 00       		.byte	0x0
+ 1017 0016 03       		.uleb128 0x3
+ 1018 0017 08       		.uleb128 0x8
+ 1019 0018 3A       		.uleb128 0x3a
+ 1020 0019 0B       		.uleb128 0xb
+ 1021 001a 3B       		.uleb128 0x3b
+ 1022 001b 0B       		.uleb128 0xb
+ 1023 001c 49       		.uleb128 0x49
+ 1024 001d 13       		.uleb128 0x13
+ 1025 001e 00       		.byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 22
+
+
+ 1026 001f 00       		.byte	0x0
+ 1027 0020 03       		.uleb128 0x3
+ 1028 0021 24       		.uleb128 0x24
+ 1029 0022 00       		.byte	0x0
+ 1030 0023 03       		.uleb128 0x3
+ 1031 0024 0E       		.uleb128 0xe
+ 1032 0025 0B       		.uleb128 0xb
+ 1033 0026 0B       		.uleb128 0xb
+ 1034 0027 3E       		.uleb128 0x3e
+ 1035 0028 0B       		.uleb128 0xb
+ 1036 0029 00       		.byte	0x0
+ 1037 002a 00       		.byte	0x0
+ 1038 002b 04       		.uleb128 0x4
+ 1039 002c 16       		.uleb128 0x16
+ 1040 002d 00       		.byte	0x0
+ 1041 002e 03       		.uleb128 0x3
+ 1042 002f 0E       		.uleb128 0xe
+ 1043 0030 3A       		.uleb128 0x3a
+ 1044 0031 0B       		.uleb128 0xb
+ 1045 0032 3B       		.uleb128 0x3b
+ 1046 0033 0B       		.uleb128 0xb
+ 1047 0034 49       		.uleb128 0x49
+ 1048 0035 13       		.uleb128 0x13
+ 1049 0036 00       		.byte	0x0
+ 1050 0037 00       		.byte	0x0
+ 1051 0038 05       		.uleb128 0x5
+ 1052 0039 24       		.uleb128 0x24
+ 1053 003a 00       		.byte	0x0
+ 1054 003b 03       		.uleb128 0x3
+ 1055 003c 08       		.uleb128 0x8
+ 1056 003d 0B       		.uleb128 0xb
+ 1057 003e 0B       		.uleb128 0xb
+ 1058 003f 3E       		.uleb128 0x3e
+ 1059 0040 0B       		.uleb128 0xb
+ 1060 0041 00       		.byte	0x0
+ 1061 0042 00       		.byte	0x0
+ 1062 0043 06       		.uleb128 0x6
+ 1063 0044 0F       		.uleb128 0xf
+ 1064 0045 00       		.byte	0x0
+ 1065 0046 0B       		.uleb128 0xb
+ 1066 0047 0B       		.uleb128 0xb
+ 1067 0048 00       		.byte	0x0
+ 1068 0049 00       		.byte	0x0
+ 1069 004a 07       		.uleb128 0x7
+ 1070 004b 2E       		.uleb128 0x2e
+ 1071 004c 01       		.byte	0x1
+ 1072 004d 01       		.uleb128 0x1
+ 1073 004e 13       		.uleb128 0x13
+ 1074 004f 3F       		.uleb128 0x3f
+ 1075 0050 0C       		.uleb128 0xc
+ 1076 0051 03       		.uleb128 0x3
+ 1077 0052 0E       		.uleb128 0xe
+ 1078 0053 3A       		.uleb128 0x3a
+ 1079 0054 0B       		.uleb128 0xb
+ 1080 0055 3B       		.uleb128 0x3b
+ 1081 0056 0B       		.uleb128 0xb
+ 1082 0057 27       		.uleb128 0x27
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 23
+
+
+ 1083 0058 0C       		.uleb128 0xc
+ 1084 0059 11       		.uleb128 0x11
+ 1085 005a 01       		.uleb128 0x1
+ 1086 005b 12       		.uleb128 0x12
+ 1087 005c 01       		.uleb128 0x1
+ 1088 005d 40       		.uleb128 0x40
+ 1089 005e 06       		.uleb128 0x6
+ 1090 005f 00       		.byte	0x0
+ 1091 0060 00       		.byte	0x0
+ 1092 0061 08       		.uleb128 0x8
+ 1093 0062 05       		.uleb128 0x5
+ 1094 0063 00       		.byte	0x0
+ 1095 0064 03       		.uleb128 0x3
+ 1096 0065 0E       		.uleb128 0xe
+ 1097 0066 3A       		.uleb128 0x3a
+ 1098 0067 0B       		.uleb128 0xb
+ 1099 0068 3B       		.uleb128 0x3b
+ 1100 0069 0B       		.uleb128 0xb
+ 1101 006a 49       		.uleb128 0x49
+ 1102 006b 13       		.uleb128 0x13
+ 1103 006c 02       		.uleb128 0x2
+ 1104 006d 06       		.uleb128 0x6
+ 1105 006e 00       		.byte	0x0
+ 1106 006f 00       		.byte	0x0
+ 1107 0070 09       		.uleb128 0x9
+ 1108 0071 2E       		.uleb128 0x2e
+ 1109 0072 01       		.byte	0x1
+ 1110 0073 01       		.uleb128 0x1
+ 1111 0074 13       		.uleb128 0x13
+ 1112 0075 3F       		.uleb128 0x3f
+ 1113 0076 0C       		.uleb128 0xc
+ 1114 0077 03       		.uleb128 0x3
+ 1115 0078 0E       		.uleb128 0xe
+ 1116 0079 3A       		.uleb128 0x3a
+ 1117 007a 0B       		.uleb128 0xb
+ 1118 007b 3B       		.uleb128 0x3b
+ 1119 007c 0B       		.uleb128 0xb
+ 1120 007d 27       		.uleb128 0x27
+ 1121 007e 0C       		.uleb128 0xc
+ 1122 007f 11       		.uleb128 0x11
+ 1123 0080 01       		.uleb128 0x1
+ 1124 0081 12       		.uleb128 0x12
+ 1125 0082 01       		.uleb128 0x1
+ 1126 0083 40       		.uleb128 0x40
+ 1127 0084 0A       		.uleb128 0xa
+ 1128 0085 00       		.byte	0x0
+ 1129 0086 00       		.byte	0x0
+ 1130 0087 0A       		.uleb128 0xa
+ 1131 0088 05       		.uleb128 0x5
+ 1132 0089 00       		.byte	0x0
+ 1133 008a 03       		.uleb128 0x3
+ 1134 008b 0E       		.uleb128 0xe
+ 1135 008c 3A       		.uleb128 0x3a
+ 1136 008d 0B       		.uleb128 0xb
+ 1137 008e 3B       		.uleb128 0x3b
+ 1138 008f 0B       		.uleb128 0xb
+ 1139 0090 49       		.uleb128 0x49
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 24
+
+
+ 1140 0091 13       		.uleb128 0x13
+ 1141 0092 02       		.uleb128 0x2
+ 1142 0093 0A       		.uleb128 0xa
+ 1143 0094 00       		.byte	0x0
+ 1144 0095 00       		.byte	0x0
+ 1145 0096 0B       		.uleb128 0xb
+ 1146 0097 2E       		.uleb128 0x2e
+ 1147 0098 01       		.byte	0x1
+ 1148 0099 01       		.uleb128 0x1
+ 1149 009a 13       		.uleb128 0x13
+ 1150 009b 3F       		.uleb128 0x3f
+ 1151 009c 0C       		.uleb128 0xc
+ 1152 009d 03       		.uleb128 0x3
+ 1153 009e 0E       		.uleb128 0xe
+ 1154 009f 3A       		.uleb128 0x3a
+ 1155 00a0 0B       		.uleb128 0xb
+ 1156 00a1 3B       		.uleb128 0x3b
+ 1157 00a2 0B       		.uleb128 0xb
+ 1158 00a3 27       		.uleb128 0x27
+ 1159 00a4 0C       		.uleb128 0xc
+ 1160 00a5 49       		.uleb128 0x49
+ 1161 00a6 13       		.uleb128 0x13
+ 1162 00a7 11       		.uleb128 0x11
+ 1163 00a8 01       		.uleb128 0x1
+ 1164 00a9 12       		.uleb128 0x12
+ 1165 00aa 01       		.uleb128 0x1
+ 1166 00ab 40       		.uleb128 0x40
+ 1167 00ac 06       		.uleb128 0x6
+ 1168 00ad 00       		.byte	0x0
+ 1169 00ae 00       		.byte	0x0
+ 1170 00af 0C       		.uleb128 0xc
+ 1171 00b0 34       		.uleb128 0x34
+ 1172 00b1 00       		.byte	0x0
+ 1173 00b2 03       		.uleb128 0x3
+ 1174 00b3 0E       		.uleb128 0xe
+ 1175 00b4 3A       		.uleb128 0x3a
+ 1176 00b5 0B       		.uleb128 0xb
+ 1177 00b6 3B       		.uleb128 0x3b
+ 1178 00b7 0B       		.uleb128 0xb
+ 1179 00b8 49       		.uleb128 0x49
+ 1180 00b9 13       		.uleb128 0x13
+ 1181 00ba 02       		.uleb128 0x2
+ 1182 00bb 0A       		.uleb128 0xa
+ 1183 00bc 00       		.byte	0x0
+ 1184 00bd 00       		.byte	0x0
+ 1185 00be 0D       		.uleb128 0xd
+ 1186 00bf 34       		.uleb128 0x34
+ 1187 00c0 00       		.byte	0x0
+ 1188 00c1 03       		.uleb128 0x3
+ 1189 00c2 08       		.uleb128 0x8
+ 1190 00c3 3A       		.uleb128 0x3a
+ 1191 00c4 0B       		.uleb128 0xb
+ 1192 00c5 3B       		.uleb128 0x3b
+ 1193 00c6 0B       		.uleb128 0xb
+ 1194 00c7 49       		.uleb128 0x49
+ 1195 00c8 13       		.uleb128 0x13
+ 1196 00c9 02       		.uleb128 0x2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 25
+
+
+ 1197 00ca 0A       		.uleb128 0xa
+ 1198 00cb 00       		.byte	0x0
+ 1199 00cc 00       		.byte	0x0
+ 1200 00cd 0E       		.uleb128 0xe
+ 1201 00ce 2E       		.uleb128 0x2e
+ 1202 00cf 01       		.byte	0x1
+ 1203 00d0 01       		.uleb128 0x1
+ 1204 00d1 13       		.uleb128 0x13
+ 1205 00d2 03       		.uleb128 0x3
+ 1206 00d3 0E       		.uleb128 0xe
+ 1207 00d4 3A       		.uleb128 0x3a
+ 1208 00d5 0B       		.uleb128 0xb
+ 1209 00d6 3B       		.uleb128 0x3b
+ 1210 00d7 0B       		.uleb128 0xb
+ 1211 00d8 27       		.uleb128 0x27
+ 1212 00d9 0C       		.uleb128 0xc
+ 1213 00da 11       		.uleb128 0x11
+ 1214 00db 01       		.uleb128 0x1
+ 1215 00dc 12       		.uleb128 0x12
+ 1216 00dd 01       		.uleb128 0x1
+ 1217 00de 40       		.uleb128 0x40
+ 1218 00df 06       		.uleb128 0x6
+ 1219 00e0 00       		.byte	0x0
+ 1220 00e1 00       		.byte	0x0
+ 1221 00e2 0F       		.uleb128 0xf
+ 1222 00e3 05       		.uleb128 0x5
+ 1223 00e4 00       		.byte	0x0
+ 1224 00e5 03       		.uleb128 0x3
+ 1225 00e6 08       		.uleb128 0x8
+ 1226 00e7 3A       		.uleb128 0x3a
+ 1227 00e8 0B       		.uleb128 0xb
+ 1228 00e9 3B       		.uleb128 0x3b
+ 1229 00ea 0B       		.uleb128 0xb
+ 1230 00eb 49       		.uleb128 0x49
+ 1231 00ec 13       		.uleb128 0x13
+ 1232 00ed 02       		.uleb128 0x2
+ 1233 00ee 06       		.uleb128 0x6
+ 1234 00ef 00       		.byte	0x0
+ 1235 00f0 00       		.byte	0x0
+ 1236 00f1 10       		.uleb128 0x10
+ 1237 00f2 2E       		.uleb128 0x2e
+ 1238 00f3 00       		.byte	0x0
+ 1239 00f4 3F       		.uleb128 0x3f
+ 1240 00f5 0C       		.uleb128 0xc
+ 1241 00f6 03       		.uleb128 0x3
+ 1242 00f7 0E       		.uleb128 0xe
+ 1243 00f8 3A       		.uleb128 0x3a
+ 1244 00f9 0B       		.uleb128 0xb
+ 1245 00fa 3B       		.uleb128 0x3b
+ 1246 00fb 0B       		.uleb128 0xb
+ 1247 00fc 11       		.uleb128 0x11
+ 1248 00fd 01       		.uleb128 0x1
+ 1249 00fe 12       		.uleb128 0x12
+ 1250 00ff 01       		.uleb128 0x1
+ 1251 0100 40       		.uleb128 0x40
+ 1252 0101 06       		.uleb128 0x6
+ 1253 0102 00       		.byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 26
+
+
+ 1254 0103 00       		.byte	0x0
+ 1255 0104 11       		.uleb128 0x11
+ 1256 0105 34       		.uleb128 0x34
+ 1257 0106 00       		.byte	0x0
+ 1258 0107 03       		.uleb128 0x3
+ 1259 0108 0E       		.uleb128 0xe
+ 1260 0109 3A       		.uleb128 0x3a
+ 1261 010a 0B       		.uleb128 0xb
+ 1262 010b 3B       		.uleb128 0x3b
+ 1263 010c 0B       		.uleb128 0xb
+ 1264 010d 49       		.uleb128 0x49
+ 1265 010e 13       		.uleb128 0x13
+ 1266 010f 1C       		.uleb128 0x1c
+ 1267 0110 06       		.uleb128 0x6
+ 1268 0111 00       		.byte	0x0
+ 1269 0112 00       		.byte	0x0
+ 1270 0113 12       		.uleb128 0x12
+ 1271 0114 26       		.uleb128 0x26
+ 1272 0115 00       		.byte	0x0
+ 1273 0116 49       		.uleb128 0x49
+ 1274 0117 13       		.uleb128 0x13
+ 1275 0118 00       		.byte	0x0
+ 1276 0119 00       		.byte	0x0
+ 1277 011a 13       		.uleb128 0x13
+ 1278 011b 01       		.uleb128 0x1
+ 1279 011c 01       		.byte	0x1
+ 1280 011d 01       		.uleb128 0x1
+ 1281 011e 13       		.uleb128 0x13
+ 1282 011f 49       		.uleb128 0x49
+ 1283 0120 13       		.uleb128 0x13
+ 1284 0121 00       		.byte	0x0
+ 1285 0122 00       		.byte	0x0
+ 1286 0123 14       		.uleb128 0x14
+ 1287 0124 21       		.uleb128 0x21
+ 1288 0125 00       		.byte	0x0
+ 1289 0126 49       		.uleb128 0x49
+ 1290 0127 13       		.uleb128 0x13
+ 1291 0128 2F       		.uleb128 0x2f
+ 1292 0129 05       		.uleb128 0x5
+ 1293 012a 00       		.byte	0x0
+ 1294 012b 00       		.byte	0x0
+ 1295 012c 15       		.uleb128 0x15
+ 1296 012d 21       		.uleb128 0x21
+ 1297 012e 00       		.byte	0x0
+ 1298 012f 49       		.uleb128 0x49
+ 1299 0130 13       		.uleb128 0x13
+ 1300 0131 2F       		.uleb128 0x2f
+ 1301 0132 0B       		.uleb128 0xb
+ 1302 0133 00       		.byte	0x0
+ 1303 0134 00       		.byte	0x0
+ 1304 0135 16       		.uleb128 0x16
+ 1305 0136 34       		.uleb128 0x34
+ 1306 0137 00       		.byte	0x0
+ 1307 0138 03       		.uleb128 0x3
+ 1308 0139 0E       		.uleb128 0xe
+ 1309 013a 3A       		.uleb128 0x3a
+ 1310 013b 0B       		.uleb128 0xb
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 27
+
+
+ 1311 013c 3B       		.uleb128 0x3b
+ 1312 013d 0B       		.uleb128 0xb
+ 1313 013e 49       		.uleb128 0x49
+ 1314 013f 13       		.uleb128 0x13
+ 1315 0140 3F       		.uleb128 0x3f
+ 1316 0141 0C       		.uleb128 0xc
+ 1317 0142 02       		.uleb128 0x2
+ 1318 0143 0A       		.uleb128 0xa
+ 1319 0144 00       		.byte	0x0
+ 1320 0145 00       		.byte	0x0
+ 1321 0146 17       		.uleb128 0x17
+ 1322 0147 35       		.uleb128 0x35
+ 1323 0148 00       		.byte	0x0
+ 1324 0149 49       		.uleb128 0x49
+ 1325 014a 13       		.uleb128 0x13
+ 1326 014b 00       		.byte	0x0
+ 1327 014c 00       		.byte	0x0
+ 1328 014d 00       		.byte	0x0
+ 1329              		.section	.debug_pubnames,"",%progbits
+ 1330 0000 7A000000 		.4byte	0x7a
+ 1331 0004 0200     		.2byte	0x2
+ 1332 0006 00000000 		.4byte	.Ldebug_info0
+ 1333 000a A5020000 		.4byte	0x2a5
+ 1334 000e 6E000000 		.4byte	0x6e
+ 1335 0012 7564656C 		.ascii	"udelay\000"
+ 1335      617900
+ 1336 0019 97000000 		.4byte	0x97
+ 1337 001d 6D64656C 		.ascii	"mdelay\000"
+ 1337      617900
+ 1338 0024 BC000000 		.4byte	0xbc
+ 1339 0028 61707054 		.ascii	"appTick\000"
+ 1339      69636B00 
+ 1340 0030 E1000000 		.4byte	0xe1
+ 1341 0034 6D61696E 		.ascii	"main\000"
+ 1341      00
+ 1342 0039 51010000 		.4byte	0x151
+ 1343 003d 6F70656E 		.ascii	"openDoor\000"
+ 1343      446F6F72 
+ 1343      00
+ 1344 0046 42020000 		.4byte	0x242
+ 1345 004a 7365724E 		.ascii	"serNum\000"
+ 1345      756D00
+ 1346 0051 54020000 		.4byte	0x254
+ 1347 0055 6D73436C 		.ascii	"msClock\000"
+ 1347      6F636B00 
+ 1348 005d 6B020000 		.4byte	0x26b
+ 1349 0061 6B696C6C 		.ascii	"killProc1\000"
+ 1349      50726F63 
+ 1349      3100
+ 1350 006b 92020000 		.4byte	0x292
+ 1351 006f 62757474 		.ascii	"buttonOpen\000"
+ 1351      6F6E4F70 
+ 1351      656E00
+ 1352 007a 00000000 		.4byte	0x0
+ 1353              		.section	.debug_aranges,"",%progbits
+ 1354 0000 1C000000 		.4byte	0x1c
+ 1355 0004 0200     		.2byte	0x2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 28
+
+
+ 1356 0006 00000000 		.4byte	.Ldebug_info0
+ 1357 000a 04       		.byte	0x4
+ 1358 000b 00       		.byte	0x0
+ 1359 000c 0000     		.2byte	0x0
+ 1360 000e 0000     		.2byte	0x0
+ 1361 0010 00000000 		.4byte	.Ltext0
+ 1362 0014 60020000 		.4byte	.Letext0-.Ltext0
+ 1363 0018 00000000 		.4byte	0x0
+ 1364 001c 00000000 		.4byte	0x0
+ 1365              		.section	.debug_str,"MS",%progbits,1
+ 1366              	.LASF24:
+ 1367 0000 6D73436C 		.ascii	"msClock\000"
+ 1367      6F636B00 
+ 1368              	.LASF18:
+ 1369 0008 4B455950 		.ascii	"KEYPIN_3\000"
+ 1369      494E5F33 
+ 1369      00
+ 1370              	.LASF30:
+ 1371 0011 6F70656E 		.ascii	"openDoor\000"
+ 1371      446F6F72 
+ 1371      00
+ 1372              	.LASF8:
+ 1373 001a 6D64656C 		.ascii	"mdelay\000"
+ 1373      617900
+ 1374              	.LASF21:
+ 1375 0021 696E6974 		.ascii	"initStack\000"
+ 1375      53746163 
+ 1375      6B00
+ 1376              	.LASF22:
+ 1377 002b 70696431 		.ascii	"pid1\000"
+ 1377      00
+ 1378              	.LASF17:
+ 1379 0030 4B455950 		.ascii	"KEYPIN_2\000"
+ 1379      494E5F32 
+ 1379      00
+ 1380              	.LASF0:
+ 1381 0039 756E7369 		.ascii	"unsigned char\000"
+ 1381      676E6564 
+ 1381      20636861 
+ 1381      7200
+ 1382              	.LASF6:
+ 1383 0047 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1383      20756E73 
+ 1383      69676E65 
+ 1383      6420696E 
+ 1383      7400
+ 1384              	.LASF1:
+ 1385 0059 73686F72 		.ascii	"short unsigned int\000"
+ 1385      7420756E 
+ 1385      7369676E 
+ 1385      65642069 
+ 1385      6E7400
+ 1386              	.LASF25:
+ 1387 006c 6B696C6C 		.ascii	"killProc1\000"
+ 1387      50726F63 
+ 1387      3100
+ 1388              	.LASF26:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 29
+
+
+ 1389 0076 62757474 		.ascii	"buttonOpen\000"
+ 1389      6F6E4F70 
+ 1389      656E00
+ 1390              	.LASF29:
+ 1391 0081 2F637967 		.ascii	"/cygdrive/c/Users/embedded/Desktop/SystemyWbudowane"
+ 1391      64726976 
+ 1391      652F632F 
+ 1391      55736572 
+ 1391      732F656D 
+ 1392 00b4 4B4F4E49 		.ascii	"KONIEC/projektZamek/2138\000"
+ 1392      45432F70 
+ 1392      726F6A65 
+ 1392      6B745A61 
+ 1392      6D656B2F 
+ 1393              	.LASF15:
+ 1394 00cd 70726F63 		.ascii	"proc1\000"
+ 1394      3100
+ 1395              	.LASF12:
+ 1396 00d3 6D61696E 		.ascii	"main\000"
+ 1396      00
+ 1397              	.LASF3:
+ 1398 00d8 756E7369 		.ascii	"unsigned int\000"
+ 1398      676E6564 
+ 1398      20696E74 
+ 1398      00
+ 1399              	.LASF11:
+ 1400 00e5 656C6170 		.ascii	"elapsedTime\000"
+ 1400      73656454 
+ 1400      696D6500 
+ 1401              	.LASF7:
+ 1402 00f1 7564656C 		.ascii	"udelay\000"
+ 1402      617900
+ 1403              	.LASF14:
+ 1404 00f8 696E6974 		.ascii	"initProc\000"
+ 1404      50726F63 
+ 1404      00
+ 1405              	.LASF27:
+ 1406 0101 474E5520 		.ascii	"GNU C 4.1.1\000"
+ 1406      4320342E 
+ 1406      312E3100 
+ 1407              	.LASF16:
+ 1408 010d 4B455950 		.ascii	"KEYPIN_1\000"
+ 1408      494E5F31 
+ 1408      00
+ 1409              	.LASF2:
+ 1410 0116 74553332 		.ascii	"tU32\000"
+ 1410      00
+ 1411              	.LASF19:
+ 1412 011b 4B455950 		.ascii	"KEYPIN_4\000"
+ 1412      494E5F34 
+ 1412      00
+ 1413              	.LASF10:
+ 1414 0124 61707054 		.ascii	"appTick\000"
+ 1414      69636B00 
+ 1415              	.LASF5:
+ 1416 012c 73686F72 		.ascii	"short int\000"
+ 1416      7420696E 
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 30
+
+
+ 1416      7400
+ 1417              	.LASF13:
+ 1418 0136 6572726F 		.ascii	"error\000"
+ 1418      7200
+ 1419              	.LASF9:
+ 1420 013c 64656C61 		.ascii	"delayInUs\000"
+ 1420      79496E55 
+ 1420      7300
+ 1421              	.LASF4:
+ 1422 0146 7369676E 		.ascii	"signed char\000"
+ 1422      65642063 
+ 1422      68617200 
+ 1423              	.LASF23:
+ 1424 0152 7365724E 		.ascii	"serNum\000"
+ 1424      756D00
+ 1425              	.LASF28:
+ 1426 0159 6D61696E 		.ascii	"main.c\000"
+ 1426      2E6300
+ 1427              	.LASF20:
+ 1428 0160 70726F63 		.ascii	"proc1Stack\000"
+ 1428      31537461 
+ 1428      636B00
+ 1429              		.ident	"GCC: (GNU) 4.1.1"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s 			page 31
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 main.c
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:1      .text:00000000 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:17     .text:00000000 udelay
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:70     .text:00000040 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:82     .text:00000054 mdelay
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:79     .text:00000054 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:126    .text:00000088 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:139    .text:000000a0 appTick
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:136    .text:000000a0 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:157    .text:000000ac $d
+                            *COM*:00000004 msClock
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:165    .text:000000b0 main
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:162    .text:000000b0 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:217    .text:00000100 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:225    .text:00000108 initProc
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:461    .bss:00000401 initStack
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:222    .text:00000108 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:266    .text:00000144 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:463    .bss:00000591 pid1
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:317    .text:0000017c proc1
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:459    .bss:00000001 proc1Stack
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:276    .text:00000150 openDoor
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:273    .text:00000150 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:305    .text:00000178 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:314    .text:0000017c $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:449    .text:00000258 $d
+                            *COM*:00000003 buttonOpen
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccXtaFEu.s:457    .bss:00000000 killProc1
+                            *COM*:00000005 serNum
+
+UNDEFINED SYMBOLS
+__divsi3
+initPWM
+SPI_Master_Init
+initLED
+initRFID
+osInit
+osCreateProcess
+osStartProcess
+osStart
+eaInit
+osDeleteProcess
+pwmON
+ledON
+pwmOFF
+ledOFF
+checkButton
+osSleep
+isCard
+readCardSerial
+checkIfValidTag
+simplePrintf

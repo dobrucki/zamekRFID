@@ -1,0 +1,26 @@
+what,kind,bundleId,bundleVersion,description,time
+java.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004139837
+java.version,sysinfo,,,"1.6.0_27",1558004139837
+java.vm.info,sysinfo,,,"mixed mode, sharing",1558004139837
+java.vm.name,sysinfo,,,"Java HotSpot(TM) Client VM",1558004139837
+java.vm.specification.name,sysinfo,,,"Java Virtual Machine Specification",1558004139837
+java.vm.specification.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004139837
+java.vm.specification.version,sysinfo,,,"1.0",1558004139837
+java.vm.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004139837
+java.vm.version,sysinfo,,,"20.2-b06",1558004139837
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1558004140774
+started,bundle,org.eclipse.debug.ui,3.5.2.v20091028_r352,"org.eclipse.debug.ui",1558004143806
+started,bundle,org.eclipse.ui.externaltools,3.2.0.v20090504,"org.eclipse.ui.externaltools",1558004143806
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004146649
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004195399
+failed,command,org.eclipse.ui.externaltools,3.2.0.v20090504,"org.eclipse.ui.externalTools.commands.OpenExternalToolsConfigurations",1558004195431
+closed,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004203227
+stopped,bundle,org.eclipse.compare.win32,1.0.0.I20090430-0408,"org.eclipse.compare.win32",1558004203540
+stopped,bundle,com.zylin.embeddedcdt,4.11.1,"com.zylin.embeddedcdt",1558004203540
+stopped,bundle,org.eclipse.cdt.debug.mi.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.mi.ui",1558004203540
+stopped,bundle,org.eclipse.cdt.dsf.gdb.ui,2.0.0.200909110608,"org.eclipse.cdt.dsf.gdb.ui",1558004203540
+stopped,bundle,org.eclipse.cdt.dsf.ui,2.0.1.200909110608,"org.eclipse.cdt.dsf.ui",1558004203540
+stopped,bundle,org.eclipse.cdt.launch,6.0.0.200909110608,"org.eclipse.cdt.launch",1558004203540
+stopped,bundle,org.eclipse.cdt.debug.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.ui",1558004203540
+stopped,bundle,org.eclipse.cdt.managedbuilder.ui,5.1.0.200909110608,"org.eclipse.cdt.managedbuilder.ui",1558004203540
+stopped,bundle,org.eclipse.cdt.make.ui,6.0.1.200909110608,"org.eclipse.cdt.make.ui",1558004203540

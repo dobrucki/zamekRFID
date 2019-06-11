@@ -1,0 +1,26 @@
+what,kind,bundleId,bundleVersion,description,time
+java.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004665768
+java.version,sysinfo,,,"1.6.0_27",1558004665768
+java.vm.info,sysinfo,,,"mixed mode, sharing",1558004665768
+java.vm.name,sysinfo,,,"Java HotSpot(TM) Client VM",1558004665768
+java.vm.specification.name,sysinfo,,,"Java Virtual Machine Specification",1558004665768
+java.vm.specification.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004665768
+java.vm.specification.version,sysinfo,,,"1.0",1558004665768
+java.vm.vendor,sysinfo,,,"Sun Microsystems Inc.",1558004665768
+java.vm.version,sysinfo,,,"20.2-b06",1558004665768
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1558004666456
+activated,editor,org.eclipse.cdt.ui,5.1.1.200909110608,"org.eclipse.cdt.ui.editor.CEditor",1558004669034
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.file.refresh",1558004678175
+started,bundle,org.eclipse.debug.ui,3.5.2.v20091028_r352,"org.eclipse.debug.ui",1558004683737
+started,bundle,org.eclipse.ui.externaltools,3.2.0.v20090504,"org.eclipse.ui.externaltools",1558004683737
+started,bundle,org.eclipse.cdt.debug.core,6.0.0.200909110608,"org.eclipse.cdt.debug.core",1558004683831
+started,bundle,org.eclipse.cdt.debug.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.ui",1558004683831
+started,bundle,org.eclipse.cdt.debug.mi.ui,6.0.0.200909110608,"org.eclipse.cdt.debug.mi.ui",1558004692862
+started,bundle,org.eclipse.cdt.debug.mi.core,6.0.0.200909110608,"org.eclipse.cdt.debug.mi.core",1558004692878
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004786711
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004864151
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004866792
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004880401
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004882995
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1558004890151
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1558004891386

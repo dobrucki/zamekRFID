@@ -1,0 +1,12 @@
+#ifndef DELAY_H_
+#define DELAY_H_
+
+#include <general.h>
+#include <lpc2xxx.h>
+#include <consol.h>
+
+
+void udelay(tU32 delayInUs);
+void mdelay(tU32 delayInMs);
+
+#endif

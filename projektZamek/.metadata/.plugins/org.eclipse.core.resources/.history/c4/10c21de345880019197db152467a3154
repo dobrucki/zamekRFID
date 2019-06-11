@@ -1,0 +1,22 @@
+#include "led.h"
+
+
+void initLED(){
+    
+    PINSEL0 |= (0 << 21) | (0 << 20);
+    IODIR0 |= (1 << 10); 
+    
+    IODIR1 |= (1 << 19) | (1 << 18) | (1 << 17) | (1 << 16); //piny p1.16-20 dzialaja w trybie wyjsciowym (ustanienie bitu na 1)
+	IOSET1  = 0x000F0000; // ustawienie pinow 1.16-20 na stan wysoki?
+    
+}
+
+void ledON(){
+    IOSET0 = (1 << 10);
+    
+}
+
+void ledOFF(){
+    IOCLR0 = (1 << 10);
+    
+}

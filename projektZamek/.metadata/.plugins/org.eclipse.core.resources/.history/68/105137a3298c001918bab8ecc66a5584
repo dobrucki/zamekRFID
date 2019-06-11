@@ -1,0 +1,403 @@
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 1
+
+
+   1              		.code	16
+   2              		.file	"led.c"
+   3              		.section	.debug_abbrev,"",%progbits
+   4              	.Ldebug_abbrev0:
+   5              		.section	.debug_info,"",%progbits
+   6              	.Ldebug_info0:
+   7              		.section	.debug_line,"",%progbits
+   8              	.Ldebug_line0:
+   9 0000 3A000000 		.text
+   9      02001C00 
+   9      00000201 
+   9      FB0E0D00 
+   9      01010101 
+  10              	.Ltext0:
+  11              		.align	2
+  12              		.global	initLED
+  13              		.code 16
+  14              		.thumb_func
+  15              		.type	initLED, %function
+  16              	initLED:
+  17              	.LFB2:
+  18              		.file 1 "led.c"
+   1:led.c         **** #include "led.h"
+   2:led.c         **** 
+   3:led.c         **** 
+   4:led.c         **** void initLED() {
+  19              		.loc 1 4 0
+   5:led.c         ****     
+   6:led.c         ****     PINSEL0 |= (0 << 21) | (0 << 20);
+  20              		.loc 1 6 0
+  21 0000 044A     		ldr	r2, .L3
+  22 0002 1368     		ldr	r3, [r2]
+   7:led.c         ****     IODIR0 |= (1 << 10); 
+  23              		.loc 1 7 0
+  24 0004 0449     		ldr	r1, .L3+4
+  25              		.loc 1 6 0
+  26 0006 1360     		str	r3, [r2]
+  27              		.loc 1 7 0
+  28 0008 8023     		mov	r3, #128
+  29 000a 0A68     		ldr	r2, [r1]
+  30 000c DB00     		lsl	r3, r3, #3
+  31 000e 1A43     		orr	r2, r2, r3
+  32              		.loc 1 4 0
+  33              		@ lr needed for prologue
+  34              		.loc 1 7 0
+  35 0010 0A60     		str	r2, [r1]
+   8:led.c         ****     
+   9:led.c         **** }
+  36              		.loc 1 9 0
+  37              		@ sp needed for prologue
+  38 0012 7047     		bx	lr
+  39              	.L4:
+  40              		.align	2
+  41              	.L3:
+  42 0014 00C002E0 		.word	-536690688
+  43 0018 088002E0 		.word	-536707064
+  44              	.LFE2:
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 2
+
+
+  45              		.size	initLED, .-initLED
+  46              		.align	2
+  47              		.global	ledON
+  48              		.code 16
+  49              		.thumb_func
+  50              		.type	ledON, %function
+  51              	ledON:
+  52              	.LFB3:
+  10:led.c         **** 
+  11:led.c         **** void ledON() {
+  53              		.loc 1 11 0
+  12:led.c         ****     IOSET0 = (1 << 10);
+  54              		.loc 1 12 0
+  55 001c 024A     		ldr	r2, .L7
+  56 001e 8023     		mov	r3, #128
+  57 0020 DB00     		lsl	r3, r3, #3
+  58              		.loc 1 11 0
+  59              		@ lr needed for prologue
+  60              		.loc 1 12 0
+  61 0022 1360     		str	r3, [r2]
+  13:led.c         ****     
+  14:led.c         **** }
+  62              		.loc 1 14 0
+  63              		@ sp needed for prologue
+  64 0024 7047     		bx	lr
+  65              	.L8:
+  66 0026 0000     		.align	2
+  67              	.L7:
+  68 0028 048002E0 		.word	-536707068
+  69              	.LFE3:
+  70              		.size	ledON, .-ledON
+  71              		.align	2
+  72              		.global	ledOFF
+  73              		.code 16
+  74              		.thumb_func
+  75              		.type	ledOFF, %function
+  76              	ledOFF:
+  77              	.LFB4:
+  15:led.c         **** 
+  16:led.c         **** void ledOFF() {
+  78              		.loc 1 16 0
+  17:led.c         ****     IOCLR0 = (1 << 10);
+  79              		.loc 1 17 0
+  80 002c 024A     		ldr	r2, .L11
+  81 002e 8023     		mov	r3, #128
+  82 0030 DB00     		lsl	r3, r3, #3
+  83              		.loc 1 16 0
+  84              		@ lr needed for prologue
+  85              		.loc 1 17 0
+  86 0032 1360     		str	r3, [r2]
+  18:led.c         ****     
+  19:led.c         **** }
+  87              		.loc 1 19 0
+  88              		@ sp needed for prologue
+  89 0034 7047     		bx	lr
+  90              	.L12:
+  91 0036 0000     		.align	2
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 3
+
+
+  92              	.L11:
+  93 0038 0C8002E0 		.word	-536707060
+  94              	.LFE4:
+  95              		.size	ledOFF, .-ledOFF
+  96              		.section	.debug_frame,"",%progbits
+  97              	.Lframe0:
+  98 0000 0C000000 		.4byte	.LECIE0-.LSCIE0
+  99              	.LSCIE0:
+ 100 0004 FFFFFFFF 		.4byte	0xffffffff
+ 101 0008 01       		.byte	0x1
+ 102 0009 00       		.ascii	"\000"
+ 103 000a 01       		.uleb128 0x1
+ 104 000b 7C       		.sleb128 -4
+ 105 000c 0E       		.byte	0xe
+ 106 000d 0C       		.byte	0xc
+ 107 000e 0D       		.uleb128 0xd
+ 108 000f 00       		.uleb128 0x0
+ 109              		.align	2
+ 110              	.LECIE0:
+ 111              	.LSFDE0:
+ 112 0010 0C000000 		.4byte	.LEFDE0-.LASFDE0
+ 113              	.LASFDE0:
+ 114 0014 00000000 		.4byte	.Lframe0
+ 115 0018 00000000 		.4byte	.LFB2
+ 116 001c 1C000000 		.4byte	.LFE2-.LFB2
+ 117              		.align	2
+ 118              	.LEFDE0:
+ 119              	.LSFDE2:
+ 120 0020 0C000000 		.4byte	.LEFDE2-.LASFDE2
+ 121              	.LASFDE2:
+ 122 0024 00000000 		.4byte	.Lframe0
+ 123 0028 1C000000 		.4byte	.LFB3
+ 124 002c 10000000 		.4byte	.LFE3-.LFB3
+ 125              		.align	2
+ 126              	.LEFDE2:
+ 127              	.LSFDE4:
+ 128 0030 0C000000 		.4byte	.LEFDE4-.LASFDE4
+ 129              	.LASFDE4:
+ 130 0034 00000000 		.4byte	.Lframe0
+ 131 0038 2C000000 		.4byte	.LFB4
+ 132 003c 10000000 		.4byte	.LFE4-.LFB4
+ 133              		.align	2
+ 134              	.LEFDE4:
+ 135              		.text
+ 136              	.Letext0:
+ 137              		.section	.debug_info
+ 138 0000 82000000 		.4byte	0x82
+ 139 0004 0200     		.2byte	0x2
+ 140 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 141 000a 04       		.byte	0x4
+ 142 000b 01       		.uleb128 0x1
+ 143 000c 00000000 		.4byte	.Ldebug_line0
+ 144 0010 3C000000 		.4byte	.Letext0
+ 145 0014 00000000 		.4byte	.Ltext0
+ 146 0018 4B000000 		.4byte	.LASF8
+ 147 001c 01       		.byte	0x1
+ 148 001d 1C000000 		.4byte	.LASF9
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 4
+
+
+ 149 0021 57000000 		.4byte	.LASF10
+ 150 0025 02       		.uleb128 0x2
+ 151 0026 A3000000 		.4byte	.LASF0
+ 152 002a 01       		.byte	0x1
+ 153 002b 08       		.byte	0x8
+ 154 002c 02       		.uleb128 0x2
+ 155 002d 2E000000 		.4byte	.LASF1
+ 156 0031 02       		.byte	0x2
+ 157 0032 07       		.byte	0x7
+ 158 0033 02       		.uleb128 0x2
+ 159 0034 08000000 		.4byte	.LASF2
+ 160 0038 04       		.byte	0x4
+ 161 0039 07       		.byte	0x7
+ 162 003a 02       		.uleb128 0x2
+ 163 003b 22000000 		.4byte	.LASF3
+ 164 003f 01       		.byte	0x1
+ 165 0040 06       		.byte	0x6
+ 166 0041 02       		.uleb128 0x2
+ 167 0042 41000000 		.4byte	.LASF4
+ 168 0046 02       		.byte	0x2
+ 169 0047 05       		.byte	0x5
+ 170 0048 03       		.uleb128 0x3
+ 171 0049 696E7400 		.ascii	"int\000"
+ 172 004d 04       		.byte	0x4
+ 173 004e 05       		.byte	0x5
+ 174 004f 04       		.uleb128 0x4
+ 175 0050 01       		.byte	0x1
+ 176 0051 00000000 		.4byte	.LASF5
+ 177 0055 01       		.byte	0x1
+ 178 0056 04       		.byte	0x4
+ 179 0057 00000000 		.4byte	.LFB2
+ 180 005b 1C000000 		.4byte	.LFE2
+ 181 005f 01       		.byte	0x1
+ 182 0060 5D       		.byte	0x5d
+ 183 0061 04       		.uleb128 0x4
+ 184 0062 01       		.byte	0x1
+ 185 0063 B1000000 		.4byte	.LASF6
+ 186 0067 01       		.byte	0x1
+ 187 0068 0B       		.byte	0xb
+ 188 0069 1C000000 		.4byte	.LFB3
+ 189 006d 2C000000 		.4byte	.LFE3
+ 190 0071 01       		.byte	0x1
+ 191 0072 5D       		.byte	0x5d
+ 192 0073 04       		.uleb128 0x4
+ 193 0074 01       		.byte	0x1
+ 194 0075 15000000 		.4byte	.LASF7
+ 195 0079 01       		.byte	0x1
+ 196 007a 10       		.byte	0x10
+ 197 007b 2C000000 		.4byte	.LFB4
+ 198 007f 3C000000 		.4byte	.LFE4
+ 199 0083 01       		.byte	0x1
+ 200 0084 5D       		.byte	0x5d
+ 201 0085 00       		.byte	0x0
+ 202              		.section	.debug_abbrev
+ 203 0000 01       		.uleb128 0x1
+ 204 0001 11       		.uleb128 0x11
+ 205 0002 01       		.byte	0x1
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 5
+
+
+ 206 0003 10       		.uleb128 0x10
+ 207 0004 06       		.uleb128 0x6
+ 208 0005 12       		.uleb128 0x12
+ 209 0006 01       		.uleb128 0x1
+ 210 0007 11       		.uleb128 0x11
+ 211 0008 01       		.uleb128 0x1
+ 212 0009 25       		.uleb128 0x25
+ 213 000a 0E       		.uleb128 0xe
+ 214 000b 13       		.uleb128 0x13
+ 215 000c 0B       		.uleb128 0xb
+ 216 000d 03       		.uleb128 0x3
+ 217 000e 0E       		.uleb128 0xe
+ 218 000f 1B       		.uleb128 0x1b
+ 219 0010 0E       		.uleb128 0xe
+ 220 0011 00       		.byte	0x0
+ 221 0012 00       		.byte	0x0
+ 222 0013 02       		.uleb128 0x2
+ 223 0014 24       		.uleb128 0x24
+ 224 0015 00       		.byte	0x0
+ 225 0016 03       		.uleb128 0x3
+ 226 0017 0E       		.uleb128 0xe
+ 227 0018 0B       		.uleb128 0xb
+ 228 0019 0B       		.uleb128 0xb
+ 229 001a 3E       		.uleb128 0x3e
+ 230 001b 0B       		.uleb128 0xb
+ 231 001c 00       		.byte	0x0
+ 232 001d 00       		.byte	0x0
+ 233 001e 03       		.uleb128 0x3
+ 234 001f 24       		.uleb128 0x24
+ 235 0020 00       		.byte	0x0
+ 236 0021 03       		.uleb128 0x3
+ 237 0022 08       		.uleb128 0x8
+ 238 0023 0B       		.uleb128 0xb
+ 239 0024 0B       		.uleb128 0xb
+ 240 0025 3E       		.uleb128 0x3e
+ 241 0026 0B       		.uleb128 0xb
+ 242 0027 00       		.byte	0x0
+ 243 0028 00       		.byte	0x0
+ 244 0029 04       		.uleb128 0x4
+ 245 002a 2E       		.uleb128 0x2e
+ 246 002b 00       		.byte	0x0
+ 247 002c 3F       		.uleb128 0x3f
+ 248 002d 0C       		.uleb128 0xc
+ 249 002e 03       		.uleb128 0x3
+ 250 002f 0E       		.uleb128 0xe
+ 251 0030 3A       		.uleb128 0x3a
+ 252 0031 0B       		.uleb128 0xb
+ 253 0032 3B       		.uleb128 0x3b
+ 254 0033 0B       		.uleb128 0xb
+ 255 0034 11       		.uleb128 0x11
+ 256 0035 01       		.uleb128 0x1
+ 257 0036 12       		.uleb128 0x12
+ 258 0037 01       		.uleb128 0x1
+ 259 0038 40       		.uleb128 0x40
+ 260 0039 0A       		.uleb128 0xa
+ 261 003a 00       		.byte	0x0
+ 262 003b 00       		.byte	0x0
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 6
+
+
+ 263 003c 00       		.byte	0x0
+ 264              		.section	.debug_pubnames,"",%progbits
+ 265 0000 2F000000 		.4byte	0x2f
+ 266 0004 0200     		.2byte	0x2
+ 267 0006 00000000 		.4byte	.Ldebug_info0
+ 268 000a 86000000 		.4byte	0x86
+ 269 000e 4F000000 		.4byte	0x4f
+ 270 0012 696E6974 		.ascii	"initLED\000"
+ 270      4C454400 
+ 271 001a 61000000 		.4byte	0x61
+ 272 001e 6C65644F 		.ascii	"ledON\000"
+ 272      4E00
+ 273 0024 73000000 		.4byte	0x73
+ 274 0028 6C65644F 		.ascii	"ledOFF\000"
+ 274      464600
+ 275 002f 00000000 		.4byte	0x0
+ 276              		.section	.debug_aranges,"",%progbits
+ 277 0000 1C000000 		.4byte	0x1c
+ 278 0004 0200     		.2byte	0x2
+ 279 0006 00000000 		.4byte	.Ldebug_info0
+ 280 000a 04       		.byte	0x4
+ 281 000b 00       		.byte	0x0
+ 282 000c 0000     		.2byte	0x0
+ 283 000e 0000     		.2byte	0x0
+ 284 0010 00000000 		.4byte	.Ltext0
+ 285 0014 3C000000 		.4byte	.Letext0-.Ltext0
+ 286 0018 00000000 		.4byte	0x0
+ 287 001c 00000000 		.4byte	0x0
+ 288              		.section	.debug_str,"MS",%progbits,1
+ 289              	.LASF5:
+ 290 0000 696E6974 		.ascii	"initLED\000"
+ 290      4C454400 
+ 291              	.LASF2:
+ 292 0008 756E7369 		.ascii	"unsigned int\000"
+ 292      676E6564 
+ 292      20696E74 
+ 292      00
+ 293              	.LASF7:
+ 294 0015 6C65644F 		.ascii	"ledOFF\000"
+ 294      464600
+ 295              	.LASF9:
+ 296 001c 6C65642E 		.ascii	"led.c\000"
+ 296      6300
+ 297              	.LASF3:
+ 298 0022 7369676E 		.ascii	"signed char\000"
+ 298      65642063 
+ 298      68617200 
+ 299              	.LASF1:
+ 300 002e 73686F72 		.ascii	"short unsigned int\000"
+ 300      7420756E 
+ 300      7369676E 
+ 300      65642069 
+ 300      6E7400
+ 301              	.LASF4:
+ 302 0041 73686F72 		.ascii	"short int\000"
+ 302      7420696E 
+ 302      7400
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 7
+
+
+ 303              	.LASF8:
+ 304 004b 474E5520 		.ascii	"GNU C 4.1.1\000"
+ 304      4320342E 
+ 304      312E3100 
+ 305              	.LASF10:
+ 306 0057 2F637967 		.ascii	"/cygdrive/c/Users/embedded/Desktop/SystemyWbudowane"
+ 306      64726976 
+ 306      652F632F 
+ 306      55736572 
+ 306      732F656D 
+ 307 008a 4B4F4E49 		.ascii	"KONIEC/projektZamek/2138\000"
+ 307      45432F70 
+ 307      726F6A65 
+ 307      6B745A61 
+ 307      6D656B2F 
+ 308              	.LASF0:
+ 309 00a3 756E7369 		.ascii	"unsigned char\000"
+ 309      676E6564 
+ 309      20636861 
+ 309      7200
+ 310              	.LASF6:
+ 311 00b1 6C65644F 		.ascii	"ledON\000"
+ 311      4E00
+ 312              		.ident	"GCC: (GNU) 4.1.1"
+ARM GAS  /cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s 			page 8
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 led.c
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:1      .text:00000000 $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:16     .text:00000000 initLED
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:42     .text:00000014 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:51     .text:0000001c ledON
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:48     .text:0000001c $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:68     .text:00000028 $d
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:76     .text:0000002c ledOFF
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:73     .text:0000002c $t
+/cygdrive/c/Users/embedded/AppData/Local/Temp/ccOqc75a.s:93     .text:00000038 $d
+
+NO UNDEFINED SYMBOLS

@@ -1,0 +1,26 @@
+what,kind,bundleId,bundleVersion,description,time
+executed,command,org.eclipse.ltk.ui.refactoring,3.4.101.r352_v20100209,"org.eclipse.ltk.ui.refactoring.commands.deleteResources",1560244607309
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.edit.delete",1560244607309
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244610387
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244611605
+executed,command,org.eclipse.ltk.ui.refactoring,3.4.101.r352_v20100209,"org.eclipse.ltk.ui.refactoring.commands.deleteResources",1560244611621
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.edit.delete",1560244611621
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244613684
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244614762
+executed,command,org.eclipse.ltk.ui.refactoring,3.4.101.r352_v20100209,"org.eclipse.ltk.ui.refactoring.commands.deleteResources",1560244614777
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.edit.delete",1560244614777
+activated,editor,org.eclipse.cdt.ui,5.1.1.200909110608,"org.eclipse.cdt.ui.editor.CEditor",1560244616512
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244618699
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244623355
+activated,view,org.eclipse.ui.navigator.resources,3.4.1.M20090826-0800,"org.eclipse.ui.navigator.ProjectExplorer",1560244644250
+error,log,,,"Cannot create or restore 'buttons.lst' because it already exists.",1560244645391
+error,log,,,"Cannot create or restore 'buttons.lst' because it already exists.",1560244645391
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244645453
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.edit.undo",1560244645469
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244646969
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244653203
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244654703
+executed,command,org.eclipse.ltk.ui.refactoring,3.4.101.r352_v20100209,"org.eclipse.ltk.ui.refactoring.commands.deleteResources",1560244654703
+executed,command,org.eclipse.ui,3.5.2.M20100120-0800,"org.eclipse.ui.edit.delete",1560244654703
+deactivated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244677281
+activated,workbench,org.eclipse.ui.workbench,3.5.2.M20100113-0800,"",1560244678891
