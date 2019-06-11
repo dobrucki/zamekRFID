@@ -1,21 +1,21 @@
-# ZamekRFID
+﻿# ZamekRFID
 
-Projekt na systemy wbudowane zatytu?owany 'ZamekRFID'. 
+Projekt na systemy wbudowane zatytułowany 'ZamekRFID'. 
 
 ## Autorzy
 
-- J?drzej Dobrucki (Lider)
+- Jędrzej Dobrucki (Lider)
 - Kamil Celejewski 
 - Maciej Bartos
 
 ## Projekt
 
-- Politechnika ?�dzka
-- WFTIMS
-- Informatyka
-- Semestr IV
-- Systemy wbudowane
+* Politechnika Łódzka
+* WFTIMS
+* Informatyka
+* Semestr IV
+* Systemy wbudowane
 
 ## Dokumentacja
 
-Dokumentacja projektu znajduje si? w [pliku pdf. ](https://github.com/dobrucki/zamekRFID/blob/master/Dokumentacja.pdf)
+Dokumentacja projektu znajduje się w [pliku pdf. ](https://github.com/dobrucki/zamekRFID/blob/master/Dokumentacja.pdf)
